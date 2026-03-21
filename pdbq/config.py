@@ -1,7 +1,20 @@
+import logging
 from pathlib import Path
 from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def configure_logging(debug: bool = False) -> None:
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+        force=True,
+    )
+    for noisy in ("httpx", "httpcore", "anthropic", "markdown_it"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+    if debug:
+        logging.getLogger("pdbq").setLevel(logging.DEBUG)
 
 
 class Settings(BaseSettings):

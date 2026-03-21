@@ -10,7 +10,6 @@ Usage:
     pdbq db shell
     pdbq serve
 """
-import logging
 import sys
 
 import click
@@ -23,21 +22,20 @@ console = Console()
 
 
 @click.group()
-@click.option("--debug", is_flag=True, default=False, help="Enable debug logging")
-def cli(debug: bool) -> None:
-    level = logging.DEBUG if debug else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
+def cli() -> None:
+    from pdbq.config import configure_logging
+    configure_logging(debug=False)
 
 
 @cli.command()
 @click.argument("question")
 @click.option("--export-sheets", is_flag=True, default=False, help="Export results to Google Sheets")
 @click.option("--show-sql", is_flag=True, default=False, help="Print SQL queries executed by the agent")
-def query(question: str, export_sheets: bool, show_sql: bool) -> None:
+@click.option("--debug", is_flag=True, default=False, help="Enable verbose logging")
+def query(question: str, export_sheets: bool, show_sql: bool, debug: bool) -> None:
     """Ask a natural-language question about PeeringDB data."""
+    from pdbq.config import configure_logging
+    configure_logging(debug=debug)
     from pdbq.agent.core import run_agent
 
     google_token = None
@@ -89,8 +87,11 @@ def sync() -> None:
 
 @sync.command("run")
 @click.option("--incremental", is_flag=True, default=False, help="Only fetch records updated since last sync")
-def sync_run(incremental: bool) -> None:
+@click.option("--debug", is_flag=True, default=False, help="Enable verbose logging")
+def sync_run(incremental: bool, debug: bool) -> None:
     """Sync PeeringDB data into the local DuckDB database."""
+    from pdbq.config import configure_logging
+    configure_logging(debug=debug)
     from pdbq.sync.run import run_sync
 
     mode = "incremental" if incremental else "full"
@@ -185,10 +186,11 @@ def serve(host: str, port: int, reload: bool) -> None:
 # Allow `pdbq sync` without subcommand to default to `pdbq sync run`
 @cli.command("sync", hidden=True)
 @click.option("--incremental", is_flag=True, default=False)
+@click.option("--debug", is_flag=True, default=False)
 @click.pass_context
-def sync_shortcut(ctx: click.Context, incremental: bool) -> None:
+def sync_shortcut(ctx: click.Context, incremental: bool, debug: bool) -> None:
     """Shortcut: pdbq sync [--incremental] runs a sync."""
-    ctx.invoke(sync_run, incremental=incremental)
+    ctx.invoke(sync_run, incremental=incremental, debug=debug)
 
 
 # Fix: make `pdbq sync` without subcommand still work as a group
