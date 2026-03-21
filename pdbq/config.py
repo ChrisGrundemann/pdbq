@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # DuckDB
     duckdb_path: str = "data/pdbq.duckdb"
 
+    # Query history
+    query_history_path: str = "data/query_history.jsonl"
+    query_history_max_entries: int = 10000
+
     # Auth
     pdbq_api_keys: str = "changeme-key-1"
     admin_api_key: str = "changeme-admin-key"
@@ -70,6 +74,14 @@ class Settings(BaseSettings):
             p = Path(__file__).parent.parent / p
         p.parent.mkdir(parents=True, exist_ok=True)
         return str(p)
+
+    @property
+    def query_history_path_abs(self) -> Path:
+        p = Path(self.query_history_path)
+        if not p.is_absolute():
+            p = Path(__file__).parent.parent / p
+        p.parent.mkdir(parents=True, exist_ok=True)
+        return p
 
     @property
     def google_token_store_path_abs(self) -> str:

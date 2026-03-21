@@ -4,13 +4,20 @@ pdbq CLI — natural-language queries over PeeringDB data.
 Usage:
     pdbq query "Which networks peer at more than 10 IXes?"
     pdbq query "All facilities in Germany" --export-sheets
+    pdbq history
+    pdbq history --last 10
+    pdbq history --show 1
     pdbq sync
     pdbq sync --incremental
     pdbq sync status
     pdbq db shell
     pdbq serve
 """
+import json
 import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
 
 import click
 from rich.console import Console
@@ -19,6 +26,43 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 console = Console()
+
+def _history_path():
+    from pdbq.config import settings
+    return settings.query_history_path_abs
+
+
+def _append_history(record: dict) -> None:
+    from pdbq.config import settings
+    path = settings.query_history_path_abs
+    with path.open("a") as f:
+        f.write(json.dumps(record) + "\n")
+    max_entries = settings.query_history_max_entries
+    if max_entries > 0:
+        _trim_history(path, max_entries)
+
+
+def _trim_history(path: Path, max_entries: int) -> None:
+    with path.open() as f:
+        lines = [l for l in f if l.strip()]
+    if len(lines) > max_entries:
+        path.write_text("".join(lines[-max_entries:]))
+
+
+def _load_history(last: int) -> list[dict]:
+    path = _history_path()
+    if not path.exists():
+        return []
+    entries = []
+    with path.open() as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+    return entries[-last:] if last else entries
 
 
 @click.group()
@@ -31,17 +75,24 @@ def cli() -> None:
 @click.argument("question")
 @click.option("--export-sheets", is_flag=True, default=False, help="Export results to Google Sheets")
 @click.option("--show-sql", is_flag=True, default=False, help="Print SQL queries executed by the agent")
+@click.option("--output", "output_file", default=None, metavar="FILE", help="Save markdown response to FILE")
 @click.option("--debug", is_flag=True, default=False, help="Enable verbose logging")
-def query(question: str, export_sheets: bool, show_sql: bool, debug: bool) -> None:
+def query(question: str, export_sheets: bool, show_sql: bool, output_file: str, debug: bool) -> None:
     """Ask a natural-language question about PeeringDB data."""
     from pdbq.config import configure_logging
     configure_logging(debug=debug)
     from pdbq.agent.core import run_agent
 
+    if output_file:
+        out_path = Path(output_file)
+        if out_path.exists() and not click.confirm(f"{output_file} already exists. Overwrite?"):
+            raise click.Abort()
+
     google_token = None
     if export_sheets:
         google_token = _ensure_google_auth()
 
+    t0 = time.monotonic()
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -50,8 +101,22 @@ def query(question: str, export_sheets: bool, show_sql: bool, debug: bool) -> No
     ) as progress:
         progress.add_task("Querying agent...", total=None)
         result = run_agent(question, google_token=google_token)
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
 
     console.print(Markdown(result.answer))
+
+    if output_file:
+        out_path.write_text(result.answer)
+        console.print(f"\n[green]Saved to {output_file}[/green]")
+
+    _append_history({
+        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        "query": question,
+        "sql_executed": result.sql_executed,
+        "elapsed_ms": elapsed_ms,
+        "output_file": output_file,
+        "answer": result.answer,
+    })
 
     if show_sql and result.sql_executed:
         console.print("\n[bold dim]SQL executed:[/bold dim]")
@@ -65,6 +130,49 @@ def query(question: str, export_sheets: bool, show_sql: bool, debug: bool) -> No
                 if "sheet_url" in res:
                     console.print(f"\n[green]Exported to Google Sheets:[/green] {res['sheet_url']}")
                     break
+
+
+@cli.command()
+@click.option("--last", default=20, show_default=True, metavar="N", help="Show only the last N entries")
+@click.option("--show", "show_index", default=None, type=int, metavar="N", help="Show full output of the Nth most recent query (1 = most recent)")
+def history(last: int, show_index: int) -> None:
+    """Show past query history."""
+    entries = _load_history(last)
+
+    if not entries:
+        console.print("[yellow]No query history found.[/yellow]")
+        return
+
+    if show_index is not None:
+        if show_index < 1 or show_index > len(entries):
+            console.print(f"[red]No entry #{show_index} — history has {len(entries)} entries (most recent = 1).[/red]")
+            sys.exit(1)
+        # entries are ordered oldest-first; index 1 = last entry
+        entry = entries[-show_index]
+        console.print(f"[bold dim]{entry['timestamp']}[/bold dim]  [cyan]{entry['query']}[/cyan]\n")
+        if entry.get("answer"):
+            console.print(Markdown(entry["answer"]))
+        elif entry.get("sql_executed"):
+            console.print("[bold dim]SQL executed:[/bold dim]")
+            for sql in entry["sql_executed"]:
+                console.print(f"[dim]{sql}[/dim]")
+        return
+
+    table = Table(show_header=True)
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Timestamp", style="dim")
+    table.add_column("Query", no_wrap=False, max_width=60)
+    table.add_column("SQL", justify="right")
+    table.add_column("ms", justify="right")
+
+    for i, entry in enumerate(reversed(entries), start=1):
+        q = entry.get("query", "")
+        truncated = q[:57] + "..." if len(q) > 60 else q
+        sql_count = str(len(entry.get("sql_executed") or []))
+        elapsed = str(entry.get("elapsed_ms", ""))
+        table.add_row(str(i), entry.get("timestamp", ""), truncated, sql_count, elapsed)
+
+    console.print(table)
 
 
 def _ensure_google_auth() -> str:
