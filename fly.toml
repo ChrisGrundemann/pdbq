@@ -37,3 +37,9 @@ primary_region = "dfw"
 
 # Scheduled sync machine — runs nightly at 02:00 UTC
 # Deploy with: fly machine run . --schedule="0 2 * * *" --entrypoint="uv run python sync/run.py --incremental"
+
+# /sync/trigger launches an ephemeral Fly machine via the Machines API.
+# Required secrets (fly secrets set):
+#   FLY_API_TOKEN   — Fly API token with write access to this app
+#   FLY_VOLUME_ID   — (optional) volume ID to mount at /app/data in the sync machine
+# FLY_APP_NAME and FLY_IMAGE_REF are injected automatically by the Fly runtime.

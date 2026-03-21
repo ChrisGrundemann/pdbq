@@ -53,6 +53,13 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
 
+    # Fly.io (populated automatically by the Fly runtime)
+    fly_api_token: str = ""   # FLY_API_TOKEN — set as a Fly secret
+    fly_app_name: str = ""    # FLY_APP_NAME  — injected by Fly
+    fly_image_ref: str = ""   # FLY_IMAGE_REF — injected by Fly
+    fly_volume_id: str = ""   # optional: volume ID to mount in the sync machine
+    fly_region: str = "dfw"   # region for the ephemeral sync machine
+
     @property
     def api_keys(self) -> List[str]:
         return [k.strip() for k in self.pdbq_api_keys.split(",") if k.strip()]
