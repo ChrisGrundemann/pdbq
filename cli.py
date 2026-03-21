@@ -13,6 +13,8 @@ Usage:
     pdbq db shell
     pdbq serve
 """
+import csv
+import io
 import json
 import sys
 import time
@@ -65,6 +67,34 @@ def _load_history(last: int) -> list[dict]:
     return entries[-last:] if last else entries
 
 
+def _last_query_db_rows(tool_calls: list) -> tuple[list[str], list[dict]] | tuple[None, None]:
+    """Return (columns, rows) from the last query_db tool call that produced rows, or (None, None)."""
+    for call in reversed(tool_calls):
+        if call.get("tool") == "query_db":
+            result = call.get("result", {})
+            rows = result.get("rows")
+            columns = result.get("columns")
+            if rows and columns:
+                return columns, rows
+    return None, None
+
+
+def _write_output(out_path: Path, answer: str, tool_calls: list) -> str:
+    """Write output to out_path. Returns 'csv' or 'markdown' indicating what was written."""
+    if out_path.suffix.lower() == ".csv":
+        columns, rows = _last_query_db_rows(tool_calls)
+        if columns and rows:
+            buf = io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=columns, extrasaction="ignore", lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(rows)
+            out_path.write_text(buf.getvalue())
+            return "csv"
+        # Fall through to markdown if no tabular data
+    out_path.write_text(answer)
+    return "markdown"
+
+
 @click.group()
 def cli() -> None:
     from pdbq.config import configure_logging
@@ -106,8 +136,14 @@ def query(question: str, export_sheets: bool, show_sql: bool, output_file: str, 
     console.print(Markdown(result.answer))
 
     if output_file:
-        out_path.write_text(result.answer)
-        console.print(f"\n[green]Saved to {output_file}[/green]")
+        fmt = _write_output(out_path, result.answer, result.tool_calls)
+        if fmt == "csv":
+            console.print(f"\n[green]Saved CSV to {output_file}[/green]")
+        else:
+            if out_path.suffix.lower() == ".csv":
+                console.print(f"\n[yellow]No tabular data found — saved markdown to {output_file}[/yellow]")
+            else:
+                console.print(f"\n[green]Saved to {output_file}[/green]")
 
     _append_history({
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
