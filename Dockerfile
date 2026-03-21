@@ -11,14 +11,20 @@ COPY --from=ghcr.io/astral-sh/uv:0.10.12 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-# Install dependencies first (layer cache)
+# Install dependencies first (layer cache — local package excluded until source is present)
 COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code
 COPY pdbq/ ./pdbq/
 COPY cli.py ./
 COPY sync/ ./sync/
+
+# Install the local pdbq package and its entry points into the venv
+RUN uv pip install -e . --no-deps
+
+# Confirm the entry point is baked in (fails the build if missing)
+RUN test -f /app/.venv/bin/pdbq
 
 # Create data and secrets directories (data will be overridden by Fly volume mount)
 RUN mkdir -p /app/data /app/secrets

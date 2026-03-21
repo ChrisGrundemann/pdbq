@@ -241,26 +241,28 @@ def sync_as_set(
 def run_sync(incremental: bool = False, tables: Optional[List[str]] = None) -> Dict[str, int]:
     results: Dict[str, int] = {}
     conn = get_write_connection()
+    try:
+        resources = RESOURCES
+        if tables:
+            resources = [r for r in RESOURCES if r[1] in tables]
 
-    resources = RESOURCES
-    if tables:
-        resources = [r for r in RESOURCES if r[1] in tables]
+        with PeeringDBClient() as client:
+            for endpoint, table, columns in resources:
+                try:
+                    count = sync_resource(conn, client, endpoint, table, columns, incremental)
+                    results[endpoint] = count
+                except Exception as exc:
+                    logger.error("Failed to sync %s: %s", endpoint, exc, exc_info=True)
+                    results[endpoint] = -1
 
-    with PeeringDBClient() as client:
-        for endpoint, table, columns in resources:
-            try:
-                count = sync_resource(conn, client, endpoint, table, columns, incremental)
-                results[endpoint] = count
-            except Exception as exc:
-                logger.error("Failed to sync %s: %s", endpoint, exc, exc_info=True)
-                results[endpoint] = -1
-
-        if not tables or "as_set" in tables:
-            try:
-                results["as_set"] = sync_as_set(conn, client)
-            except Exception as exc:
-                logger.error("Failed to sync as_set: %s", exc, exc_info=True)
-                results["as_set"] = -1
+            if not tables or "as_set" in tables:
+                try:
+                    results["as_set"] = sync_as_set(conn, client)
+                except Exception as exc:
+                    logger.error("Failed to sync as_set: %s", exc, exc_info=True)
+                    results["as_set"] = -1
+    finally:
+        conn.close()
 
     return results
 

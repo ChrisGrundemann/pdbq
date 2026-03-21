@@ -1,26 +1,30 @@
 from pathlib import Path
-from typing import Optional
 
 import duckdb
 
 from pdbq.config import settings
 
-_write_conn: Optional[duckdb.DuckDBPyConnection] = None
-
 
 def get_write_connection() -> duckdb.DuckDBPyConnection:
-    """Return a read-write DuckDB connection. Only the sync process should use this."""
-    global _write_conn
-    if _write_conn is None:
-        _write_conn = duckdb.connect(settings.duckdb_path_abs)
-        _init_schema(_write_conn)
-    return _write_conn
+    """Open a fresh read-write DuckDB connection.
+
+    Callers are responsible for closing it when done.  A new connection is
+    opened on every call so the write lock is released as soon as the caller
+    closes it — no shared singleton that lingers between sync runs.
+    """
+    conn = duckdb.connect(settings.duckdb_path_abs)
+    _init_schema(conn)
+    return conn
 
 
 def get_read_connection() -> duckdb.DuckDBPyConnection:
-    """Return a read-only DuckDB connection. Used by the API and agent."""
-    conn = duckdb.connect(settings.duckdb_path_abs, read_only=True)
-    return conn
+    """Open a fresh read-only DuckDB connection. Used by the API and agent.
+
+    read_only=True does not acquire an exclusive lock, so these connections
+    co-exist safely with a write connection held by a concurrent sync.
+    Callers are responsible for closing it when done.
+    """
+    return duckdb.connect(settings.duckdb_path_abs, read_only=True)
 
 
 def _init_schema(conn: duckdb.DuckDBPyConnection) -> None:
