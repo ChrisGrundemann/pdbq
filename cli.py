@@ -231,16 +231,18 @@ def sync() -> None:
 
 @sync.command("run")
 @click.option("--incremental", is_flag=True, default=False, help="Only fetch records updated since last sync")
-@click.option("--tables", multiple=True, metavar="TABLE", help="Only sync these tables (e.g. --tables ixfac --tables as_set)")
+@click.option("--tables", default=None, metavar="TABLES", help="Comma-separated list of tables to sync (e.g. --tables ixfac,as_set)")
 @click.option("--debug", is_flag=True, default=False, help="Enable verbose logging")
-def sync_run(incremental: bool, tables: tuple, debug: bool) -> None:
+def sync_run(incremental: bool, tables: str, debug: bool) -> None:
     """Sync PeeringDB data into the local DuckDB database."""
     from pdbq.config import configure_logging
     configure_logging(debug=debug)
     from pdbq.sync.run import run_sync
 
-    if tables:
-        mode = f"selective ({', '.join(tables)})"
+    table_list = [t.strip() for t in tables.split(",")] if tables else None
+
+    if table_list:
+        mode = f"selective ({', '.join(table_list)})"
     elif incremental:
         mode = "incremental"
     else:
@@ -254,7 +256,7 @@ def sync_run(incremental: bool, tables: tuple, debug: bool) -> None:
         console=console,
     ) as progress:
         progress.add_task(f"Syncing PeeringDB ({mode})...", total=None)
-        results = run_sync(incremental=incremental, tables=list(tables) if tables else None)
+        results = run_sync(incremental=incremental, tables=table_list)
 
     table = Table(title="Sync Results", show_header=True)
     table.add_column("Resource", style="cyan")
@@ -336,10 +338,10 @@ def serve(host: str, port: int, reload: bool) -> None:
 # Allow `pdbq sync` without subcommand to default to `pdbq sync run`
 @cli.command("sync", hidden=True)
 @click.option("--incremental", is_flag=True, default=False)
-@click.option("--tables", multiple=True, metavar="TABLE")
+@click.option("--tables", default=None, metavar="TABLES")
 @click.option("--debug", is_flag=True, default=False)
 @click.pass_context
-def sync_shortcut(ctx: click.Context, incremental: bool, tables: tuple, debug: bool) -> None:
+def sync_shortcut(ctx: click.Context, incremental: bool, tables: str, debug: bool) -> None:
     """Shortcut: pdbq sync [--incremental] runs a sync."""
     ctx.invoke(sync_run, incremental=incremental, tables=tables, debug=debug)
 

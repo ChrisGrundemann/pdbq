@@ -162,7 +162,7 @@ pdbq sync run
 pdbq sync run --incremental
 
 # Sync specific tables only
-pdbq sync run --tables netfac --tables ixfac
+pdbq sync run --tables ixfac,as_set
 
 # Show sync status (last synced time and record counts per table)
 pdbq sync status
@@ -173,7 +173,7 @@ pdbq sync status
 | Flag | Description |
 |---|---|
 | `--incremental` | Only fetch records updated since the last successful sync |
-| `--tables TABLE` | Repeat for each table to limit the sync to specific resources |
+| `--tables TABLES` | Comma-separated list of tables to sync, e.g. `--tables ixfac,as_set` |
 | `--debug` | Enable verbose logging (API calls, pagination, upsert counts) |
 
 ### Query
