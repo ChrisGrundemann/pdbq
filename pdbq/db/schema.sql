@@ -193,6 +193,20 @@ CREATE TABLE IF NOT EXISTS carrier (
 CREATE INDEX IF NOT EXISTS idx_carrier_org_id ON carrier(org_id);
 CREATE INDEX IF NOT EXISTS idx_carrier_status ON carrier(status);
 
+-- IX <-> Facility relationships
+CREATE TABLE IF NOT EXISTS ixfac (
+    id INTEGER PRIMARY KEY,
+    ix_id INTEGER,
+    fac_id INTEGER,
+    status TEXT,
+    created TIMESTAMP,
+    updated TIMESTAMP,
+    raw_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ixfac_ix_id ON ixfac(ix_id);
+CREATE INDEX IF NOT EXISTS idx_ixfac_fac_id ON ixfac(fac_id);
+CREATE INDEX IF NOT EXISTS idx_ixfac_status ON ixfac(status);
+
 -- Carrier <-> Facility relationships
 CREATE TABLE IF NOT EXISTS carrierfac (
     id INTEGER PRIMARY KEY,
@@ -206,6 +220,16 @@ CREATE TABLE IF NOT EXISTS carrierfac (
 CREATE INDEX IF NOT EXISTS idx_carrierfac_carrier_id ON carrierfac(carrier_id);
 CREATE INDEX IF NOT EXISTS idx_carrierfac_fac_id ON carrierfac(fac_id);
 CREATE INDEX IF NOT EXISTS idx_carrierfac_status ON carrierfac(status);
+
+-- Network IRR AS-SET objects
+-- Sourced from /as_set endpoint which returns {asn: as_set_string}.
+-- net_id stores the ASN integer key -- join via network.asn (not network.id).
+CREATE TABLE IF NOT EXISTS as_set (
+    net_id INTEGER PRIMARY KEY,
+    name TEXT,
+    raw_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_as_set_net_id ON as_set(net_id);
 
 -- Campuses
 CREATE TABLE IF NOT EXISTS campus (

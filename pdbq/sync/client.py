@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Optional
 
@@ -79,6 +80,7 @@ class PeeringDBClient:
                 yield obj
             if len(objects) < PAGE_SIZE:
                 break
+            time.sleep(1)
             skip += PAGE_SIZE
             logger.debug("Fetched %d records from %s (skip=%d)", len(objects), resource, skip)
 

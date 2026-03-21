@@ -87,14 +87,20 @@ def sync() -> None:
 
 @sync.command("run")
 @click.option("--incremental", is_flag=True, default=False, help="Only fetch records updated since last sync")
+@click.option("--tables", multiple=True, metavar="TABLE", help="Only sync these tables (e.g. --tables ixfac --tables as_set)")
 @click.option("--debug", is_flag=True, default=False, help="Enable verbose logging")
-def sync_run(incremental: bool, debug: bool) -> None:
+def sync_run(incremental: bool, tables: tuple, debug: bool) -> None:
     """Sync PeeringDB data into the local DuckDB database."""
     from pdbq.config import configure_logging
     configure_logging(debug=debug)
     from pdbq.sync.run import run_sync
 
-    mode = "incremental" if incremental else "full"
+    if tables:
+        mode = f"selective ({', '.join(tables)})"
+    elif incremental:
+        mode = "incremental"
+    else:
+        mode = "full"
     console.print(f"[bold]Starting {mode} sync...[/bold]")
 
     with Progress(
@@ -104,7 +110,7 @@ def sync_run(incremental: bool, debug: bool) -> None:
         console=console,
     ) as progress:
         progress.add_task(f"Syncing PeeringDB ({mode})...", total=None)
-        results = run_sync(incremental=incremental)
+        results = run_sync(incremental=incremental, tables=list(tables) if tables else None)
 
     table = Table(title="Sync Results", show_header=True)
     table.add_column("Resource", style="cyan")
@@ -186,11 +192,12 @@ def serve(host: str, port: int, reload: bool) -> None:
 # Allow `pdbq sync` without subcommand to default to `pdbq sync run`
 @cli.command("sync", hidden=True)
 @click.option("--incremental", is_flag=True, default=False)
+@click.option("--tables", multiple=True, metavar="TABLE")
 @click.option("--debug", is_flag=True, default=False)
 @click.pass_context
-def sync_shortcut(ctx: click.Context, incremental: bool, debug: bool) -> None:
+def sync_shortcut(ctx: click.Context, incremental: bool, tables: tuple, debug: bool) -> None:
     """Shortcut: pdbq sync [--incremental] runs a sync."""
-    ctx.invoke(sync_run, incremental=incremental, debug=debug)
+    ctx.invoke(sync_run, incremental=incremental, tables=tables, debug=debug)
 
 
 # Fix: make `pdbq sync` without subcommand still work as a group

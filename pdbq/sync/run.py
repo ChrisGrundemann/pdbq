@@ -93,6 +93,11 @@ RESOURCES: List[Tuple[str, str, List[str]]] = [
         ["id", "org_id", "name", "aka", "website", "status", "created", "updated"],
     ),
     (
+        "ixfac",
+        "ixfac",
+        ["id", "ix_id", "fac_id", "status", "created", "updated"],
+    ),
+    (
         "carrierfac",
         "carrierfac",
         ["id", "carrier_id", "fac_id", "status", "created", "updated"],
@@ -130,10 +135,19 @@ def _upsert_records(
     sql = f"INSERT OR REPLACE INTO {table} ({col_list}) VALUES ({placeholders})"
 
     rows = []
+    skipped = 0
     for rec in records:
+        if rec.get("id") is None:
+            skipped += 1
+            continue
         values = [rec.get(col) for col in columns]
         values.append(json.dumps(rec))
         rows.append(values)
+
+    if skipped:
+        logger.debug("Skipped %d record(s) in %s with null/missing id", skipped, table)
+    if not rows:
+        return 0
 
     conn.executemany(sql, rows)
     return len(rows)
@@ -191,18 +205,62 @@ def sync_resource(
     return total
 
 
-def run_sync(incremental: bool = False) -> Dict[str, int]:
+def sync_as_set(
+    conn: duckdb.DuckDBPyConnection,
+    client: PeeringDBClient,
+) -> int:
+    """Sync /as_set, which returns a single {asn: as_set_string} dict rather than paginated objects."""
+    synced_at = datetime.now(tz=timezone.utc)
+    data = client._get("as_set")
+    payload = data.get("data", data)
+    mapping: Dict[str, Any] = payload[0] if isinstance(payload, list) else payload
+
+    rows = []
+    for asn_str, as_set_name in mapping.items():
+        try:
+            net_id = int(asn_str)
+        except (ValueError, TypeError):
+            logger.debug("Skipping as_set entry with non-integer key: %r", asn_str)
+            continue
+        rows.append([net_id, str(as_set_name), json.dumps({asn_str: as_set_name})])
+
+    if rows:
+        conn.executemany(
+            "INSERT OR REPLACE INTO as_set (net_id, name, raw_json) VALUES (?, ?, ?)",
+            rows,
+        )
+        conn.commit()
+
+    total = len(rows)
+    _update_sync_meta(conn, "as_set", total, synced_at)
+    conn.commit()
+    logger.info("Synced %d records into as_set", total)
+    return total
+
+
+def run_sync(incremental: bool = False, tables: Optional[List[str]] = None) -> Dict[str, int]:
     results: Dict[str, int] = {}
     conn = get_write_connection()
 
+    resources = RESOURCES
+    if tables:
+        resources = [r for r in RESOURCES if r[1] in tables]
+
     with PeeringDBClient() as client:
-        for endpoint, table, columns in RESOURCES:
+        for endpoint, table, columns in resources:
             try:
                 count = sync_resource(conn, client, endpoint, table, columns, incremental)
                 results[endpoint] = count
             except Exception as exc:
                 logger.error("Failed to sync %s: %s", endpoint, exc)
                 results[endpoint] = -1
+
+        if not tables or "as_set" in tables:
+            try:
+                results["as_set"] = sync_as_set(conn, client)
+            except Exception as exc:
+                logger.error("Failed to sync as_set: %s", exc)
+                results["as_set"] = -1
 
     return results
 

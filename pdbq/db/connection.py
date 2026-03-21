@@ -25,8 +25,11 @@ def get_read_connection() -> duckdb.DuckDBPyConnection:
 
 def _init_schema(conn: duckdb.DuckDBPyConnection) -> None:
     schema_path = Path(__file__).parent / "schema.sql"
-    sql = schema_path.read_text()
-    # Execute each statement individually
+    raw = schema_path.read_text()
+    # Strip comment lines before splitting on ; so semicolons in comments don't
+    # produce spurious empty statements.
+    lines = [line for line in raw.splitlines() if not line.strip().startswith("--")]
+    sql = "\n".join(lines)
     for statement in sql.split(";"):
         statement = statement.strip()
         if statement:

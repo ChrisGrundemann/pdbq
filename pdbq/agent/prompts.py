@@ -29,8 +29,10 @@ The database contains the following tables (use these exact table and column nam
 - `ixpfx` — IP prefixes announced on an IX LAN. Foreign key: `ixlan_id → ixlan.id`
 - `netixlan` — **Join table between networks and IXes** (via ixlan). To find which networks peer at an IX, join: `network → netixlan → ixlan → ix`
 - `netfac` — **Join table between networks and facilities**. Foreign keys: `net_id → network.id`, `fac_id → facility.id`
+- `as_set` — IRR AS-SET routing policy objects for a network. Join via `as_set.net_id = network.asn` (net_id stores the ASN, not network.id)
 - `poc` — Points of contact for a network. Foreign key: `net_id → network.id`
 - `carrier` — Carrier/transit providers. Foreign key: `org_id → org.id`
+- `ixfac` — **Join table between IXes and facilities**. Foreign keys: `ix_id → ix.id`, `fac_id → facility.id`
 - `carrierfac` — Carriers present at facilities. Foreign keys: `carrier_id → carrier.id`, `fac_id → facility.id`
 - `campus` — Campus groupings of facilities. Foreign key: `org_id → org.id`
 
