@@ -104,7 +104,7 @@ $
 ## Installation
 
 ```bash
-git clone https://github.com/yourorg/pdbq
+git clone https://github.com/ChrisGrundemann/pdbq.git
 cd pdbq
 uv sync
 cp .env.example .env
@@ -367,6 +367,12 @@ pdbq mirrors the following PeeringDB tables:
 | `as_set` | `/as_set` | Network IRR AS-SET routing policy objects |
 
 **PeeringDB AUP:** Use of this data is subject to the [PeeringDB Acceptable Use Policy](https://www.peeringdb.com/aup). The data is provided for operational network planning and peering purposes. Do not bulk-redistribute the raw data or use it for commercial purposes without reviewing the AUP.
+
+---
+
+## Status
+
+This is an early-stage tool, feedback and PRs welcome!
 
 ---
 
