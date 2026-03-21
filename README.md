@@ -19,6 +19,79 @@ pdbq mirrors the PeeringDB dataset into a local DuckDB file and exposes it throu
 
 ---
 
+## Example Queries
+
+Simple geographic queries:
+```
+$ uv run pdbq query "how many IXes are in Africa?"
+There are 85 active Internet Exchange Points (IXes) in Africa according to PeeringDB.
+$
+```
+
+Compound queries:
+```
+$ uv run pdbq query "how many IXes are in Africa with more than 10 members? list them all, including which data center they are in"
+Perfect! I found 28 Internet Exchanges in Africa with more than 10 members. Let me format this into a clear report:                                                                                              
+
+African Internet Exchanges with More Than 10 Members                                                                                                                                                             
+
+Total Count: 28 IXes                                                                                                                                                                                             
+
+ IX Name                         City           Country        Members  Data Centers                                                                                                                             
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ NAPAfrica IX Johannesburg       Johannesburg   South Africa   541      • Teraco Johannesburg Campus, South Africa                                                                                               
+ NAPAfrica IX Cape Town          Cape Town      South Africa   278      • Teraco CT1 Cape Town, South Africa• Teraco CT2 Cape Town, South Africa                                                                 
+ JINX                            Johannesburg   South Africa   191      • Africa Data Centres, Johannesburg JHB1, South Africa• Africa Data Centres, Johannesburg JHB2, South Africa• Digital Parks - Samrand•   
+                                                                        Equinix JN1 - Johannesburg• NTT Data (MEA) - Parklands• NTT Johannesburg 1 Data Center (JOH1)• OADC JNB1 - Johannesburg• Teraco          
+                                                                        Johannesburg Campus, South Africa• xneelo JNB1 (Formerly Hetzner SA)                                                                     
+ NAPAfrica IX Durban             Durban         South Africa   135      • Teraco DB1 Durban, South Africa                                                                                                        
+ KIXP - Nairobi                  Nairobi        Kenya          125      • Africa Data Centres, Nairobi NBO1, Kenya• PAIX Nairobi• iXAfrica NBOX1 (Nairobi X One)• icolo.io Nairobi One (NBO1)                    
+ CINX                            Cape Town      South Africa   115      • Africa Data Centres, Cape Town CPT1, South Africa• NTT Data (MEA) - Cape Town• OADC CPT1 - Cape Town• OADC CPT2 - Brackenfell• Teraco  
+                                                                        CT1 Cape Town, South Africa• Teraco CT2 Cape Town, South Africa                                                                          
+ IXPN Lagos                      Lagos          Nigeria        114      • Africa Data Centres, Lagos LOS1, Nigeria• Cloud Exchange West Africa• Digital Realty Lagos (LOS1-2)• Digital Realty Lekki (LKK1-2)•    
+                                                                        Equinix LG1/LG2 – Lagos, Lekki• NCR-Marina• OADC LOS1 - Lagos• Rack Centre Lagos                                                         
+ DINX                            Durban         South Africa   99       • NTT DATA, Umhlanga• Teraco DB1 Durban, South Africa                                                                                    
+ AMS-IX Lagos                    Lagos          Nigeria        49       • Equinix LG1/LG2 – Lagos, Lekki                                                                                                         
+ LINX Mombasa                    Mombasa        Kenya          43       • icolo.io Mombasa One (MBA1)• icolo.io Mombasa Two (MBA2)                                                                               
+ LINX Nairobi                    Nairobi        Kenya          40       • Africa Data Centres, Nairobi NBO1, Kenya• PAIX Nairobi• iXAfrica NBOX1 (Nairobi X One)• icolo.io Nairobi One (NBO1)                    
+ AF-CIX                          Lagos          Nigeria        38       • Rack Centre Lagos                                                                                                                      
+ KIXP - Mombasa icolo            Mombasa        Kenya          33       • icolo.io Mombasa One (MBA1)                                                                                                            
+ TIX Tanzania - Dar es Salaam    Dar es Salaam  Tanzania       32       • National Internet Data Center (NIDC)• STELLAR IX SALASALA DataCenter• TIX - Tanzania - Posta House• Wingu Dar es Salaam                
+ NAPAfrica MAPS Johannesburg     Johannesburg   South Africa   26       • Teraco Johannesburg Campus, South Africa                                                                                               
+ UIXP                            Kampala        Uganda         24       • Communications House• Raxio Kampala UG1                                                                                                
+ GIXA                            Accra          Ghana          23       • Digital Realty Accra (ACR12)• Equinix AC1 - Accra• NITA data center• ONIX Data Centre Accra• PAIX Accra                                
+ angonix                         Luanda         Angola         23       • AngoNAP Luanda                                                                                                                         
+ KINIX                           Kinshasa       DR Congo       22       No facility data available                                                                                                               
+ Accra Internet Exchange LBG     Accra          Ghana          21       • PAIX Accra                                                                                                                             
+ MIXP                            Ebene          Mauritius      21       • Government Online Centre• Rogers Capital Data Center                                                                                   
+ AMS-IX Djibouti                 Djibouti       Djibouti       20       • Djibouti Data Center                                                                                                                   
+ PyramIX                         Cairo          Egypt          20       • Digital Realty Frankfurt FRA1-16• GPX Cairo 1• NIKHEF Amsterdam                                                                        
+ MOZIX                           Maputo         Mozambique     18       No facility data available                                                                                                               
+ IXPN Abuja                      Abuja          Nigeria        17       No facility data available                                                                                                               
+ BFIX Ouagadougou                Ouagadougou    Burkina Faso   16       • Datacenter Immeuble du Faso• Datacenter Ministere de l'agriculture• Virtix Data Center                                                 
+ TIX Tanzania - Arusha (AIXP)    Arusha         Tanzania       16       No facility data available                                                                                                               
+ BGP.Exchange - Johannesburg     Johannesburg   South Africa   15       No facility data available                                                                                                               
+ RINEX                           Kigali         Rwanda         15       • Telecom House Kigali                                                                                                                   
+ Angola IXP                      Luanda         Angola         14       • Paratus ITA-DC1• Paratus ITA-DC2• Raxio Luanda AO1                                                                                     
+ CIVIX                           Abidjan        Côte d'Ivoire  14       No facility data available                                                                                                               
+ LUBIX                           Lubumbashi     DR Congo       12       No facility data available                                                                                                               
+ Lusaka Internet Exchange Point  Lusaka         Zambia         12       No facility data available                                                                                                               
+ NMBINX                          Gqeberha       South Africa   12       • NTT Data (MEA) - Gqeberha (Port Elizabeth)                                                                                             
+ GOMIX                           Goma           DR Congo       11       No facility data available                                                                                                               
+                                                                                                                                                                                                                 
+
+Key Insights:                                                                                                                                                                                                    
+
+ • South Africa dominates with the most IXes (9 total) and largest membership counts                                                                                                                             
+ • NAPAfrica IX Johannesburg is the largest IX in Africa with 541 members                                                                                                                                        
+ • Teraco facilities in South Africa host multiple major IXes                                                                                                                                                    
+ • Kenya has strong IX presence with KIXP and LINX deployments across multiple facilities                                                                                                                        
+ • Nigeria has significant peering infrastructure in Lagos with 4 IXes                                                                                                                                           
+ • Several smaller IXes (7 total) have no facility data registered in PeeringDB                                                                                                                                  
+$
+```
+---
+
 ## Prerequisites
 
 - Python 3.11 or newer
@@ -47,7 +120,7 @@ uv pip install -e .
 Or run without installing:
 
 ```bash
-uv run python cli.py <command>
+uv run pdbq <command>
 ```
 
 ---
