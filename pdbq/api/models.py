@@ -35,6 +35,7 @@ class SyncTableStatus(BaseModel):
 class SyncStatusResponse(BaseModel):
     tables: List[SyncTableStatus]
     db_size_mb: float
+    last_error: Optional[str] = None
 
 
 class SyncTriggerResponse(BaseModel):

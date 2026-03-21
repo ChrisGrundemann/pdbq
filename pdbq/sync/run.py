@@ -252,14 +252,14 @@ def run_sync(incremental: bool = False, tables: Optional[List[str]] = None) -> D
                 count = sync_resource(conn, client, endpoint, table, columns, incremental)
                 results[endpoint] = count
             except Exception as exc:
-                logger.error("Failed to sync %s: %s", endpoint, exc)
+                logger.error("Failed to sync %s: %s", endpoint, exc, exc_info=True)
                 results[endpoint] = -1
 
         if not tables or "as_set" in tables:
             try:
                 results["as_set"] = sync_as_set(conn, client)
             except Exception as exc:
-                logger.error("Failed to sync as_set: %s", exc)
+                logger.error("Failed to sync as_set: %s", exc, exc_info=True)
                 results["as_set"] = -1
 
     return results
