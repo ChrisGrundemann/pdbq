@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./secrets:/app/secrets
+      - ./.env:/app/.env:ro
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+
+  sync:
+    build: .
+    command: ["uv", "run", "python", "sync/run.py"]
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    profiles:
+      - sync
