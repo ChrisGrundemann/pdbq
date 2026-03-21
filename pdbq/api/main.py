@@ -1,4 +1,7 @@
 import logging
+import signal
+import threading
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +11,33 @@ from pdbq.api.routers import admin, export, query
 from pdbq.config import settings
 
 logger = logging.getLogger(__name__)
+
+_SYNC_SHUTDOWN_TIMEOUT = 60  # seconds to wait for an in-progress sync on SIGTERM
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Install a SIGTERM handler that waits for any background sync thread to finish
+    # before allowing the process to exit.  uvicorn sends SIGTERM on graceful stop.
+    original_handler = signal.getsignal(signal.SIGTERM)
+
+    def _sigterm(signum, frame):
+        logger.info("SIGTERM received — waiting up to %ds for background sync", _SYNC_SHUTDOWN_TIMEOUT)
+        # admin._sync_thread is set by the background task wrapper when a sync is running.
+        t = getattr(admin, "_sync_thread", None)
+        if t is not None and t.is_alive():
+            t.join(timeout=_SYNC_SHUTDOWN_TIMEOUT)
+            if t.is_alive():
+                logger.warning("Sync did not finish within %ds; proceeding with shutdown", _SYNC_SHUTDOWN_TIMEOUT)
+        # Re-raise with the original handler so uvicorn can complete its own shutdown.
+        if callable(original_handler):
+            original_handler(signum, frame)
+        else:
+            raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, _sigterm)
+    yield
+    signal.signal(signal.SIGTERM, original_handler)
 
 # Refuse to start in production with default credentials
 if not settings.is_development:
@@ -26,6 +56,7 @@ app = FastAPI(
     title="pdbq",
     description="Natural-language query agent over PeeringDB data",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # CORS
