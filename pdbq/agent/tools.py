@@ -104,9 +104,11 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
 ]
 
 _SQL_DANGEROUS_PATTERN = re.compile(
-    r"\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|GRANT|REVOKE|ATTACH|DETACH|COPY|EXPORT|IMPORT)\b",
+    r"\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|GRANT|REVOKE|ATTACH|DETACH|COPY|EXPORT|IMPORT|PRAGMA)\b",
     re.IGNORECASE,
 )
+# Reject multi-statement input — a semicolon anywhere except at the very end is suspicious
+_SQL_MULTISTMT_PATTERN = re.compile(r";(?!\s*$)")
 
 MAX_ROWS = 500
 
@@ -114,6 +116,8 @@ MAX_ROWS = 500
 def _validate_sql(sql: str) -> None:
     if _SQL_DANGEROUS_PATTERN.search(sql):
         raise ValueError(f"SQL contains disallowed statement type: {sql[:200]}")
+    if _SQL_MULTISTMT_PATTERN.search(sql):
+        raise ValueError(f"SQL contains multiple statements (unexpected semicolon): {sql[:200]}")
 
 
 def execute_query_db(sql: str) -> Dict[str, Any]:

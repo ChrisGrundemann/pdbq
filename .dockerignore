@@ -1,0 +1,15 @@
+.env
+.env.*
+data/
+secrets/
+.git/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+frontend/
+*.duckdb
+*.duckdb.wal
+.pytest_cache/
+dist/
+*.egg-info/

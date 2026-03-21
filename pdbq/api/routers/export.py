@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from pdbq.agent.core import run_agent
@@ -7,10 +9,14 @@ from pdbq.api.models import ExportSheetsRequest, ExportSheetsResponse
 
 router = APIRouter()
 
+_SAFE_TOKEN_RE = re.compile(r'^[a-zA-Z0-9_-]{1,128}$')
+
 
 @router.post("/export/sheets", response_model=ExportSheetsResponse, dependencies=[Depends(require_api_key)])
 async def export_to_sheets(request: ExportSheetsRequest) -> ExportSheetsResponse:
-    # Exchange auth code for token if provided
+    # Validate google_token before it reaches the filesystem
+    if request.google_token and not _SAFE_TOKEN_RE.match(request.google_token):
+        raise HTTPException(status_code=400, detail="Invalid google_token format")
     user_token = request.google_token
     if request.google_auth_code and not user_token:
         import secrets

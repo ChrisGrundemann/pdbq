@@ -10,7 +10,7 @@ services:
       - ./secrets:/app/secrets
       - ./.env:/app/.env:ro
     environment:
-      - ENVIRONMENT=development
+      - ENVIRONMENT=development  # Local dev only — never use this compose file in production
     restart: unless-stopped
 
   sync:

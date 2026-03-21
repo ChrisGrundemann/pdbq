@@ -18,8 +18,11 @@ SCOPES = [
 
 
 def _get_token_path(user_token: str) -> Path:
-    store = Path(settings.google_token_store_path_abs)
-    return store / f"{user_token}.json"
+    store = Path(settings.google_token_store_path_abs).resolve()
+    candidate = (store / f"{user_token}.json").resolve()
+    if not str(candidate).startswith(str(store) + "/"):
+        raise ValueError(f"Invalid token identifier: path traversal detected")
+    return candidate
 
 
 def _load_credentials(user_token: str):
