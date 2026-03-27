@@ -62,7 +62,7 @@ class PeeringDBClient:
             "depth": 0,
         }
         if since is not None:
-            params["since"] = since.strftime("%Y-%m-%dT%H:%M:%S")
+            params["since"] = int(since.timestamp())
         return self._get(resource, params=params)
 
     def iter_all(
