@@ -24,9 +24,16 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    # Model provider
+    model_provider: str = "anthropic"  # "anthropic" | "ollama"
+
     # Anthropic
-    anthropic_api_key: str = ""
+    anthropic_api_key: str | None = None
     anthropic_model: str = "claude-sonnet-4-5"
+
+    # Ollama
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.1:8b"
 
     # PeeringDB
     peeringdb_api_key: str = ""
@@ -38,6 +45,13 @@ class Settings(BaseSettings):
     # Query history
     query_history_path: str = "data/query_history.jsonl"
     query_history_max_entries: int = 10000
+
+    # Staleness warning
+    sync_staleness_warn_hours: int = 24
+
+    # Scheduled sync
+    sync_schedule_enabled: bool = True
+    sync_schedule_interval_hours: int = 6
 
     # Auth
     pdbq_api_keys: str = "changeme-key-1"

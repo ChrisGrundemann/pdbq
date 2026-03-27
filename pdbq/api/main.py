@@ -15,6 +15,16 @@ logger = logging.getLogger(__name__)
 _SYNC_SHUTDOWN_TIMEOUT = 60  # seconds to wait for an in-progress sync on SIGTERM
 
 
+def _run_scheduled_sync() -> None:
+    from pdbq.sync.run import run_sync
+    logger.info("Scheduled incremental sync starting")
+    try:
+        results = run_sync(incremental=True)
+        logger.info("Scheduled incremental sync complete: %s", results)
+    except Exception as exc:
+        logger.error("Scheduled incremental sync failed: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Install a SIGTERM handler that waits for any background sync thread to finish
@@ -36,7 +46,37 @@ async def lifespan(app: FastAPI):
             raise SystemExit(0)
 
     signal.signal(signal.SIGTERM, _sigterm)
+
+    scheduler = None
+    if settings.sync_schedule_enabled:
+        try:
+            from apscheduler.schedulers.background import BackgroundScheduler
+
+            scheduler = BackgroundScheduler()
+            scheduler.add_job(
+                _run_scheduled_sync,
+                trigger="interval",
+                hours=settings.sync_schedule_interval_hours,
+                max_instances=1,
+            )
+            scheduler.start()
+            logger.warning(
+                "Sync scheduler started — incremental sync every %d hour(s)",
+                settings.sync_schedule_interval_hours,
+            )
+        except Exception as exc:
+            logger.error("Failed to start sync scheduler: %s", exc)
+            scheduler = None
+
     yield
+
+    if scheduler is not None:
+        try:
+            scheduler.shutdown(wait=False)
+            logger.info("Sync scheduler shut down")
+        except Exception as exc:
+            logger.error("Error shutting down sync scheduler: %s", exc)
+
     signal.signal(signal.SIGTERM, original_handler)
 
 # Refuse to start in production with default credentials

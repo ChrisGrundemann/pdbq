@@ -6,6 +6,7 @@ description = "Natural-language query agent over PeeringDB data"
 
 dependencies = [
     "anthropic>=0.25.0",
+    "openai>=1.0.0",
     "fastapi>=0.110.0",
     "uvicorn[standard]>=0.29.0",
     "duckdb>=0.10.0",
@@ -19,6 +20,7 @@ dependencies = [
     "rich>=13.0.0",
     "python-dotenv>=1.0.0",
     "tenacity>=8.0.0",
+    "apscheduler>=3.10",
 ]
 
 [dependency-groups]
