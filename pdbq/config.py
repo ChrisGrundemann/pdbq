@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     query_history_path: str = "data/query_history.jsonl"
     query_history_max_entries: int = 10000
 
+    # Staleness warning
+    sync_staleness_warn_hours: int = 24
+
+    # Scheduled sync
+    sync_schedule_enabled: bool = True
+    sync_schedule_interval_hours: int = 6
+
     # Auth
     pdbq_api_keys: str = "changeme-key-1"
     admin_api_key: str = "changeme-admin-key"

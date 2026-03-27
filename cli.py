@@ -16,6 +16,9 @@ Usage:
 import csv
 import io
 import json
+import logging
+import platform
+import shutil
 import sys
 import time
 from datetime import datetime, timezone
@@ -28,6 +31,39 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 console = Console()
+logger = logging.getLogger(__name__)
+
+
+def _check_sync_staleness() -> None:
+    """Print a warning if sync data is stale or missing. Never raises."""
+    try:
+        from pdbq.config import settings
+        from pdbq.db.connection import get_read_connection
+
+        conn = get_read_connection()
+        try:
+            row = conn.execute(
+                "SELECT MIN(last_synced_at) FROM sync_meta"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        if row is None or row[0] is None:
+            console.print("[yellow]⚠  No sync data found. Run 'pdbq sync run' before querying.[/yellow]")
+            return
+
+        oldest: datetime = row[0]
+        if oldest.tzinfo is None:
+            oldest = oldest.replace(tzinfo=timezone.utc)
+        age_hours = (datetime.now(tz=timezone.utc) - oldest).total_seconds() / 3600
+        if age_hours > settings.sync_staleness_warn_hours:
+            console.print(
+                f"[yellow]⚠  PeeringDB data last synced {int(age_hours)} hours ago. "
+                "Run 'pdbq sync run --incremental' to refresh.[/yellow]"
+            )
+    except Exception as exc:
+        logger.debug("Staleness check failed: %s", exc)
+
 
 def _history_path():
     from pdbq.config import settings
@@ -130,6 +166,8 @@ def query(question: str, export_sheets: bool, show_sql: bool, output_file: str, 
     google_token = None
     if export_sheets:
         google_token = _ensure_google_auth()
+
+    _check_sync_staleness()
 
     t0 = time.monotonic()
     with Progress(
@@ -308,6 +346,29 @@ def sync_status() -> None:
         table.add_row(row[0], last_synced, str(row[2] or 0))
 
     console.print(table)
+
+
+@sync.command("schedule")
+@click.option("--show", is_flag=True, required=True, help="Print a ready-to-use crontab entry for scheduled sync")
+def sync_schedule(show: bool) -> None:
+    """Print a crontab entry for running incremental sync on a schedule."""
+    uv_bin = shutil.which("uv") or "uv"
+    project_dir = str(Path(__file__).parent.resolve())
+
+    console.print("\n[bold]Scheduled sync setup[/bold]\n")
+
+    if platform.system() == "Windows":
+        console.print(
+            "[yellow]Cron is not available on Windows. Use Task Scheduler or run "
+            "'pdbq sync run --incremental' manually on a schedule.[/yellow]"
+        )
+    else:
+        cron_line = f"0 2 * * * cd {project_dir} && {uv_bin} run pdbq sync run --incremental"
+        console.print("[bold]Recommended crontab entry (runs daily at 02:00):[/bold]")
+        console.print(f"[cyan]{cron_line}[/cyan]\n")
+        console.print("[dim]Run 'crontab -e' and add the line above.[/dim]")
+
+    console.print(f"\n[dim]To sync manually: pdbq sync run --incremental[/dim]")
 
 
 @cli.group()

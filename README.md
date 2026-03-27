@@ -220,6 +220,9 @@ Copy `.env.example` to `.env` and set the values below. Variables marked **requi
 | `GOOGLE_TOKEN_STORE_PATH` | Sheets only | `data/google_tokens/` | Directory where per-user OAuth tokens are stored |
 | `ALLOWED_ORIGINS` | Production | — | Comma-separated CORS origins, e.g. `https://yourdomain.com` |
 | `ENVIRONMENT` | No | `development` | Set to `production` to enforce API key auth and enable startup credential checks |
+| `SYNC_STALENESS_WARN_HOURS` | No | `24` | Hours since last sync before a warning is shown on query; 0 = always warn |
+| `SYNC_SCHEDULE_ENABLED` | No | `True` | Enable automatic incremental sync when running pdbq serve |
+| `SYNC_SCHEDULE_INTERVAL_HOURS` | No | `6` | How often the background scheduler runs incremental sync (hours)|
 
 **Production note:** When `ENVIRONMENT=production`, the app refuses to start if `ADMIN_API_KEY` or any entry in `PDBQ_API_KEYS` still contains the default `changeme-*` values.
 
@@ -253,6 +256,17 @@ pdbq sync status
 | `--tables TABLES` | Comma-separated list of tables to sync, e.g. `--tables ixfac,as_set` |
 | `--debug` | Enable verbose logging (API calls, pagination, upsert counts) |
 
+### Automatic sync
+
+When running `pdbq serve`, an incremental sync runs automatically every `SYNC_SCHEDULE_INTERVAL_HOURS` hours (default: 6). Set `SYNC_SCHEDULE_ENABLED=false` to disable.
+
+For local CLI use without a persistent server, set up a cron job:
+```bash
+pdbq sync schedule --show
+```
+
+This prints a ready-to-use crontab line with absolute paths for your system. Run `crontab -e` and add the output.
+
 ### Query
 
 ```bash
@@ -283,6 +297,8 @@ pdbq query "complex query" --provider anthropic --model claude-opus-4-5
 | `--show-sql` | Print the SQL statements the agent executed after displaying the answer |
 | `--export-sheets` | Export results to a new Google Sheet (requires Google OAuth setup) |
 | `--debug` | Enable verbose logging |
+
+If PeeringDB data is older than `SYNC_STALENESS_WARN_HOURS` (default: 24 hours), a warning is shown before the answer. Run `pdbq sync run --incremental` to refresh.
 
 ### History
 
