@@ -99,6 +99,26 @@ $
 ```
 ---
 
+## Historical Queries
+
+pdbq can answer trend and growth questions across time. Every 
+PeeringDB record includes a `created` timestamp, which the agent 
+uses to reconstruct the state of the internet at any point in 
+the past.
+
+Example queries:
+```
+pdbq query "how has the number of IXes in Africa grown year by year since 2010?"
+pdbq query "which networks joined PeeringDB in 2024?"
+pdbq query "how many facilities existed in Asia Pacific in 2015 vs today?"
+pdbq query "what was the quarterly growth rate of IX members at DE-CIX over the last 5 years?"
+```
+
+**Note:** Historical queries reflect when records were *added to 
+PeeringDB*, not necessarily when entities were founded. Records 
+created before PeeringDB existed or added retroactively may 
+affect accuracy for early years.
+
 ## Prerequisites
 
 - Python 3.11 or newer
