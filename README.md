@@ -1,19 +1,26 @@
 # pdbq
 
-Ask natural-language questions about PeeringDB data — powered by Claude, stored locally in DuckDB.
+Ask natural-language questions about PeeringDB data — powered by Claude or a local Ollama model, stored locally in DuckDB.
 
 ```
 pdbq query "Which networks peer at more than 10 IXes in Europe?"
 pdbq query "All facilities in Japan" --output japan-facilities.csv
+pdbq query "Top 5 IXes by member count" --provider ollama
 ```
 
 ## Overview
 
-pdbq mirrors the PeeringDB dataset into a local DuckDB file and exposes it through a Claude-powered agent. You ask questions in plain English; the agent writes SQL, runs it, and returns a formatted answer. Everything runs locally — no data leaves your machine except the natural-language query sent to the Anthropic API.
+pdbq mirrors the PeeringDB dataset into a local DuckDB file and exposes it through an LLM-powered agent. You ask questions in plain English; the agent writes SQL, runs it, and returns a formatted answer.
+
+Two modes are supported:
+
+- **Cloud mode (default):** Uses the Anthropic API (Claude). Natural-language queries are sent to Anthropic; everything else stays local.
+- **Local mode:** Uses a local [Ollama](https://ollama.com) instance. Fully air-gapped after the initial PeeringDB sync — no data leaves your machine.
 
 **Stack:**
-- **DuckDB** — embedded analytical database, stores the full PeeringDB mirror (~hundreds of MB)
-- **Claude API (Anthropic)** — translates natural-language questions into SQL and formats results
+- **DuckDB** — embedded analytical database, stores the full PeeringDB mirror (~135MB, 14 tables, 208k+ records)
+- **Claude API (Anthropic)** — cloud model provider (default)
+- **Ollama** — local model provider (optional)
 - **FastAPI** — optional HTTP API for programmatic access or web frontends
 - **CLI** — the primary interface; built with Click and Rich
 
@@ -76,18 +83,18 @@ Total Count: 28 IXes
  CIVIX                           Abidjan        Côte d'Ivoire  14       No facility data available                                                                                                               
  LUBIX                           Lubumbashi     DR Congo       12       No facility data available                                                                                                               
  Lusaka Internet Exchange Point  Lusaka         Zambia         12       No facility data available                                                                                                               
- NMBINX                          Gqeberha       South Africa   12       • NTT Data (MEA) - Gqeberha (Port Elizabeth)                                                                                             
+ NMBINX                          Gqeberha       South Africa   12       • NTT Data (MEA) - Gqeberha (Port Elizabeth)                                                                                            
  GOMIX                           Goma           DR Congo       11       No facility data available                                                                                                               
-                                                                                                                                                                                                                 
 
-Key Insights:                                                                                                                                                                                                    
 
- • South Africa dominates with the most IXes (9 total) and largest membership counts                                                                                                                             
- • NAPAfrica IX Johannesburg is the largest IX in Africa with 541 members                                                                                                                                        
- • Teraco facilities in South Africa host multiple major IXes                                                                                                                                                    
- • Kenya has strong IX presence with KIXP and LINX deployments across multiple facilities                                                                                                                        
- • Nigeria has significant peering infrastructure in Lagos with 4 IXes                                                                                                                                           
- • Several smaller IXes (7 total) have no facility data registered in PeeringDB                                                                                                                                  
+Key Insights:
+
+ • South Africa dominates with the most IXes (9 total) and largest membership counts
+ • NAPAfrica IX Johannesburg is the largest IX in Africa with 541 members
+ • Teraco facilities in South Africa host multiple major IXes
+ • Kenya has strong IX presence with KIXP and LINX deployments across multiple facilities
+ • Nigeria has significant peering infrastructure in Lagos with 4 IXes
+ • Several smaller IXes (7 total) have no facility data registered in PeeringDB
 $
 ```
 ---
@@ -96,8 +103,9 @@ $
 
 - Python 3.11 or newer
 - [uv](https://docs.astral.sh/uv/) for dependency management
-- An [Anthropic API key](https://console.anthropic.com/)
-- A [PeeringDB API key](https://www.peeringdb.com/account/apikey) (optional but recommended — unauthenticated access is rate-limited)
+- **Cloud mode:** An [Anthropic API key](https://console.anthropic.com/)
+- **Local mode:** [Ollama](https://ollama.com) installed and running locally
+- A [PeeringDB API key](https://www.peeringdb.com/account/apikey) (optional but recommended — unauthenticated sync is rate-limited)
 
 ---
 
@@ -125,13 +133,82 @@ uv run pdbq <command>
 
 ---
 
+## Local Mode — Ollama Setup
+
+Local mode runs entirely on your machine after the initial PeeringDB sync. No queries are sent to any external API.
+
+### 1. Install Ollama
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+This installs the Ollama binary, creates a systemd service, and auto-detects your GPU (NVIDIA CUDA and AMD ROCm supported). The service starts automatically.
+
+### 2. Pull a model
+
+```bash
+# Recommended — good balance of speed and quality
+ollama pull llama3.1:8b
+
+# Best results for complex multi-step queries (requires ~10GB VRAM)
+ollama pull qwen2.5:14b
+```
+
+See [Model Recommendations](#model-recommendations) below for guidance on which model to use.
+
+### 3. Configure pdbq
+
+In your `.env`:
+
+```env
+MODEL_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
+```
+
+Or use the `--provider` flag at query time without changing your `.env`:
+
+```bash
+pdbq query "how many IXes are in Africa?" --provider ollama
+pdbq query "top 5 IXes by member count" --provider ollama --model qwen2.5:14b
+```
+
+### Model Recommendations
+
+pdbq uses Ollama's OpenAI-compatible tool-calling API. Not all models support structured tool use reliably — this table reflects tested results:
+
+| Model | VRAM | Tool Use | Multi-step Queries | Notes |
+|---|---|---|---|---|
+| `qwen2.5-coder:7b` | ~6GB | ❌ | ❌ | Uses a different tool format — **not compatible** |
+| `llama3.1:8b` | ~6GB | ✅ | ⚠️ | Works for simple queries; may not recover from SQL errors |
+| `qwen2.5:14b` | ~10GB | ✅ | ✅ | **Recommended** — handles error recovery and multi-tool queries |
+| `qwen2.5:32b` | ~20GB | ✅ | ✅ | Higher quality; requires 20GB+ VRAM |
+| `llama3.1:70b` | ~48GB | ✅ | ✅ | Best quality; too large for GPU on most systems, very slow on CPU |
+
+**GPU notes:** Model inference runs on GPU when the model fits in VRAM. If the model is larger than available VRAM, Ollama splits it across GPU and system RAM — which works but is significantly slower. For interactive use, choose a model that fits fully in your GPU.
+
+### What requires network access in local mode
+
+- **Initial sync** (`pdbq sync run`) — fetches data from PeeringDB over HTTPS. Run this once, then you're offline.
+- **Incremental sync** (`pdbq sync run --incremental`) — fetches only updated records; still requires PeeringDB access.
+- **`get_live_record` tool** — fetches a single live record from PeeringDB on demand. The agent uses this rarely.
+
+Everything else — the SQL agent loop, DuckDB queries, report rendering — runs fully offline.
+
+---
+
 ## Configuration
 
 Copy `.env.example` to `.env` and set the values below. Variables marked **required** must be set before the app will function.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | **Yes** | — | Anthropic API key for Claude |
+| `MODEL_PROVIDER` | No | `anthropic` | Model provider: `anthropic` or `ollama` |
+| `ANTHROPIC_API_KEY` | Cloud mode | — | Anthropic API key for Claude; not required when `MODEL_PROVIDER=ollama` |
+| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-5` | Claude model to use |
+| `OLLAMA_BASE_URL` | Local mode | `http://localhost:11434` | Ollama API endpoint |
+| `OLLAMA_MODEL` | Local mode | `llama3.1:8b` | Ollama model name |
 | `PEERINGDB_API_KEY` | Recommended | — | PeeringDB API key; unauthenticated access is heavily rate-limited |
 | `PEERINGDB_BASE_URL` | No | `https://www.peeringdb.com/api` | PeeringDB API base URL |
 | `DUCKDB_PATH` | No | `data/pdbq.duckdb` | Path to the local DuckDB database file |
@@ -179,18 +256,29 @@ pdbq sync status
 ### Query
 
 ```bash
+# Default (uses MODEL_PROVIDER from .env)
 pdbq query "Which networks peer at more than 5 IXes in Asia Pacific?"
 pdbq query "All IXes in Germany with more than 100 members"
 pdbq query "What ASes are present at Equinix NY9?" --show-sql
 pdbq query "Top 10 networks by IPv4 prefix count" --output prefixes.md
 pdbq query "All facilities in Singapore" --output sg-facs.csv
 pdbq query "Carriers at Equinix AM1" --export-sheets
+
+# Use Ollama (local, air-gapped)
+pdbq query "how many IXes are in Africa?" --provider ollama
+pdbq query "top 5 IXes by member count" --provider ollama --model qwen2.5:14b
+
+# Use Anthropic explicitly
+pdbq query "how many IXes are in Africa?" --provider anthropic
+pdbq query "complex query" --provider anthropic --model claude-opus-4-5
 ```
 
 `query` flags:
 
 | Flag | Description |
 |---|---|
+| `--provider {anthropic,ollama}` | Model provider to use (overrides `MODEL_PROVIDER` env var) |
+| `--model MODEL` | Model name to use (overrides `OLLAMA_MODEL` or `ANTHROPIC_MODEL` env var depending on provider) |
 | `--output FILE` | Save the response to a file. `.md` files get the markdown answer; `.csv` files get the raw tabular data from the last query the agent ran. Falls back to markdown if no tabular data is available. Prompts before overwriting an existing file. |
 | `--show-sql` | Print the SQL statements the agent executed after displaying the answer |
 | `--export-sheets` | Export results to a new Google Sheet (requires Google OAuth setup) |
@@ -240,6 +328,8 @@ pdbq serve --reload   # auto-reload on code changes (development)
 Start the server with `pdbq serve` or `uv run uvicorn pdbq.api.main:app --port 8080`.
 
 All endpoints except `/health` require a `Bearer` token in the `Authorization` header.
+
+The API uses whichever provider is configured via `MODEL_PROVIDER` in `.env`. Per-request provider switching is not currently supported via the API.
 
 ### `POST /query`
 

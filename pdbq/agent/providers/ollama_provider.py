@@ -1,0 +1,93 @@
+"""Ollama model provider (via OpenAI-compatible API)."""
+import json
+
+import openai
+
+from pdbq.agent.providers.base import ModelProvider, ToolCall, ToolResult
+
+
+def _to_openai_tools(tools: list[dict]) -> list[dict]:
+    """Convert Anthropic-format tool definitions to OpenAI function format."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": t["name"],
+                "description": t.get("description", ""),
+                "parameters": t["input_schema"],
+            },
+        }
+        for t in tools
+    ]
+
+
+class OllamaProvider(ModelProvider):
+    def __init__(self, base_url: str, model: str) -> None:
+        self._client = openai.OpenAI(
+            base_url=f"{base_url}/v1",
+            api_key="ollama",
+        )
+        self._model = model
+
+    def run(
+        self,
+        system: str,
+        messages: list[dict],
+        tools: list[dict],
+    ) -> tuple[str | None, list[ToolCall], dict]:
+        openai_messages = [{"role": "system", "content": system}, *messages]
+        openai_tools = _to_openai_tools(tools)
+
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=openai_messages,
+            tools=openai_tools,
+        )
+
+        message = response.choices[0].message
+        raw_tool_calls = message.tool_calls or []
+
+        if not raw_tool_calls:
+            assistant_message = {
+                "role": "assistant",
+                "content": message.content or "",
+                "tool_calls": [],
+            }
+            return message.content or "", [], assistant_message
+
+        tool_calls = [
+            ToolCall(
+                id=tc.id,
+                name=tc.function.name,
+                input=json.loads(tc.function.arguments),
+            )
+            for tc in raw_tool_calls
+        ]
+
+        assistant_message = {
+            "role": "assistant",
+            "content": message.content or "",
+            "tool_calls": [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    },
+                }
+                for tc in raw_tool_calls
+            ],
+        }
+
+        return None, tool_calls, assistant_message
+
+    def build_tool_result_message(self, results: list[ToolResult]) -> list[dict]:
+        return [
+            {
+                "role": "tool",
+                "tool_call_id": r.tool_call_id,
+                "content": r.content,
+            }
+            for r in results
+        ]

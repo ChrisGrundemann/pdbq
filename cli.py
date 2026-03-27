@@ -107,10 +107,19 @@ def cli() -> None:
 @click.option("--show-sql", is_flag=True, default=False, help="Print SQL queries executed by the agent")
 @click.option("--output", "output_file", default=None, metavar="FILE", help="Save markdown response to FILE")
 @click.option("--debug", is_flag=True, default=False, help="Enable verbose logging")
-def query(question: str, export_sheets: bool, show_sql: bool, output_file: str, debug: bool) -> None:
+@click.option("--provider", default=None, type=click.Choice(["anthropic", "ollama"]), help="Model provider to use (overrides MODEL_PROVIDER env var)")
+@click.option("--model", default=None, type=str, help="Model name to use (overrides OLLAMA_MODEL or ANTHROPIC_MODEL env var depending on provider)")
+def query(question: str, export_sheets: bool, show_sql: bool, output_file: str, debug: bool, provider: str, model: str) -> None:
     """Ask a natural-language question about PeeringDB data."""
-    from pdbq.config import configure_logging
+    from pdbq.config import configure_logging, settings
     configure_logging(debug=debug)
+    if provider is not None:
+        settings.model_provider = provider
+    if model is not None:
+        if settings.model_provider == "ollama":
+            settings.ollama_model = model
+        else:
+            settings.anthropic_model = model
     from pdbq.agent.core import run_agent
 
     if output_file:
