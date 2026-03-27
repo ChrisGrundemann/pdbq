@@ -27,20 +27,20 @@ class AgentResult:
         self.tool_calls = tool_calls
 
 
-def get_provider() -> ModelProvider:
+def get_provider(api_key: Optional[str] = None) -> ModelProvider:
     if settings.model_provider == "ollama":
         from pdbq.agent.providers.ollama_provider import OllamaProvider
         return OllamaProvider(base_url=settings.ollama_base_url, model=settings.ollama_model)
     else:
         from pdbq.agent.providers.anthropic_provider import AnthropicProvider
-        return AnthropicProvider(api_key=settings.anthropic_api_key or "", model=settings.anthropic_model)
+        return AnthropicProvider(api_key=api_key or settings.anthropic_api_key or "", model=settings.anthropic_model)
 
 
-def run_agent(query: str, google_token: Optional[str] = None) -> AgentResult:
+def run_agent(query: str, google_token: Optional[str] = None, api_key: Optional[str] = None) -> AgentResult:
     """
     Run the agent loop for a single query. Stateless — no conversation history.
     """
-    provider = get_provider()
+    provider = get_provider(api_key=api_key)
     system_prompt = build_system_prompt()
 
     messages: List[Dict[str, Any]] = [{"role": "user", "content": query}]
@@ -75,7 +75,7 @@ def run_agent(query: str, google_token: Optional[str] = None) -> AgentResult:
             if tc.name == "export_to_sheets" and google_token and "user_token" not in tool_input:
                 tool_input = {**tool_input, "user_token": google_token}
 
-            result = dispatch_tool(tc.name, tool_input)
+            result = dispatch_tool(tc.name, tool_input, api_key=api_key)
             tool_calls_log[-1]["result"] = result
 
             tool_results.append(
@@ -95,12 +95,12 @@ def run_agent(query: str, google_token: Optional[str] = None) -> AgentResult:
     )
 
 
-def stream_agent(query: str, google_token: Optional[str] = None) -> Iterator[str]:
+def stream_agent(query: str, google_token: Optional[str] = None, api_key: Optional[str] = None) -> Iterator[str]:
     """
     Stream the final answer token-by-token. Runs tool-use loop synchronously,
     then streams only the final response.
     """
-    provider = get_provider()
+    provider = get_provider(api_key=api_key)
     system_prompt = build_system_prompt()
 
     messages: List[Dict[str, Any]] = [{"role": "user", "content": query}]
@@ -119,7 +119,7 @@ def stream_agent(query: str, google_token: Optional[str] = None) -> Iterator[str
             tool_input = tc.input
             if tc.name == "export_to_sheets" and google_token and "user_token" not in tool_input:
                 tool_input = {**tool_input, "user_token": google_token}
-            result = dispatch_tool(tc.name, tool_input)
+            result = dispatch_tool(tc.name, tool_input, api_key=api_key)
             tool_results.append(
                 ToolResult(
                     tool_call_id=tc.id,

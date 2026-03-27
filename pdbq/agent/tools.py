@@ -163,8 +163,8 @@ def execute_export_to_sheets(
     return export_data_to_sheets(data=data, title=title, user_token=user_token)
 
 
-def execute_render_report(data: List[Dict[str, Any]], instructions: str) -> Dict[str, Any]:
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+def execute_render_report(data: List[Dict[str, Any]], instructions: str, api_key: str | None = None) -> Dict[str, Any]:
+    client = anthropic.Anthropic(api_key=api_key or settings.anthropic_api_key)
     prompt = (
         f"Format the following data into a polished markdown report.\n\n"
         f"Instructions: {instructions}\n\n"
@@ -180,7 +180,7 @@ def execute_render_report(data: List[Dict[str, Any]], instructions: str) -> Dict
     return {"markdown": markdown}
 
 
-def dispatch_tool(tool_name: str, tool_input: Dict[str, Any]) -> Any:
+def dispatch_tool(tool_name: str, tool_input: Dict[str, Any], api_key: str | None = None) -> Any:
     if tool_name == "query_db":
         return execute_query_db(tool_input["sql"])
     elif tool_name == "get_live_record":
@@ -192,6 +192,6 @@ def dispatch_tool(tool_name: str, tool_input: Dict[str, Any]) -> Any:
             user_token=tool_input.get("user_token"),
         )
     elif tool_name == "render_report":
-        return execute_render_report(tool_input["data"], tool_input["instructions"])
+        return execute_render_report(tool_input["data"], tool_input["instructions"], api_key=api_key)
     else:
         return {"error": f"Unknown tool: {tool_name}"}

@@ -241,7 +241,7 @@ Copy `.env.example` to `.env` and set the values below. Variables marked **requi
 | `ADMIN_API_KEY` | API only | `changeme-admin-key` | Bearer token for `/sync/status` and `/sync/trigger` |
 | `GOOGLE_CLIENT_SECRETS_PATH` | Sheets only | `secrets/google_client_secrets.json` | Google OAuth client secrets for Sheets export |
 | `GOOGLE_TOKEN_STORE_PATH` | Sheets only | `data/google_tokens/` | Directory where per-user OAuth tokens are stored |
-| `ALLOWED_ORIGINS` | Production | — | Comma-separated CORS origins, e.g. `https://yourdomain.com` |
+| `ALLOWED_ORIGINS` | Production | — | Comma-separated CORS origins for self-hosted deployments, e.g. `https://yourdomain.com`. The hosted API at `api.peeringdb.ai` and `api.pdbq.ai` has hardcoded allowed origins and does not use this variable. |
 | `ENVIRONMENT` | No | `development` | Set to `production` to enforce API key auth and enable startup credential checks |
 | `SYNC_STALENESS_WARN_HOURS` | No | `24` | Hours since last sync before a warning is shown on query; 0 = always warn |
 | `SYNC_SCHEDULE_ENABLED` | No | `True` | Enable automatic incremental sync when running pdbq serve |
@@ -381,15 +381,23 @@ curl -X POST http://localhost:8080/query \
   -d '{"query": "How many networks are in the database?"}'
 ```
 
+Request headers:
+
+| Header | Required | Description |
+|---|---|---|
+| `Authorization` | Yes | `Bearer <key>` — API key from `PDBQ_API_KEYS` |
+| `Content-Type` | Yes | `application/json` |
+| `X-Anthropic-Key` | No | Your own Anthropic API key (see [BYOC](#bring-your-own-claude-key-byoc)) |
+
 Request body:
 
 | Field | Type | Description |
 |---|---|---|
 | `query` | string | The natural-language question |
-| `stream` | bool | If `true`, streams the final answer as `text/plain` |
+| `stream` | bool | If `true`, returns a streaming NDJSON response instead of a single JSON object (see [Streaming](#streaming)) |
 | `google_token` | string | OAuth token for Sheets export (optional) |
 
-Response:
+Response (non-streaming):
 
 | Field | Type | Description |
 |---|---|---|
@@ -397,6 +405,50 @@ Response:
 | `sql_executed` | string[] | SQL statements the agent ran |
 | `tool_calls` | object[] | Full tool invocation log |
 | `elapsed_ms` | int | Total time in milliseconds |
+
+### Streaming
+
+When `"stream": true` is set in the request body, the endpoint returns a `text/plain` response using newline-delimited JSON (NDJSON). Each line is a self-contained JSON object.
+
+Token chunks (emitted as the answer is generated):
+```json
+{"type": "token", "text": "There are 42 networks..."}
+```
+
+Final metadata chunk (emitted once, after all tokens):
+```json
+{"type": "metadata", "sql_executed": "SELECT count(*) FROM network", "tool_calls": 2, "elapsed_ms": 1823}
+```
+
+If an error occurs mid-stream:
+```json
+{"type": "error", "message": "..."}
+```
+
+Example with `curl`:
+
+```bash
+curl -X POST http://localhost:8080/query \
+  -H "Authorization: Bearer <key>" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How many networks are in the database?", "stream": true}'
+```
+
+The metadata chunk is always the last line in the stream. Frontends should buffer token chunks to display the answer progressively, then use the metadata chunk to populate the detail panel (SQL, tool calls, elapsed time).
+
+### Bring Your Own Claude Key (BYOC)
+
+By default, the server uses its own `ANTHROPIC_API_KEY` for all queries. You can supply your own Anthropic API key via the `X-Anthropic-Key` request header — if present, it is used for that request instead of the server key. If absent, the server key is used as a fallback.
+
+```bash
+curl -X POST http://localhost:8080/query \
+  -H "Authorization: Bearer <key>" \
+  -H "Content-Type: application/json" \
+  -H "X-Anthropic-Key: sk-ant-..." \
+  -d '{"query": "How many networks are in the database?"}'
+```
+
+**Security note:** If you use BYOC, create a dedicated Anthropic API key for pdbq with a spend limit rather than using your primary key. You can manage keys and set limits at [console.anthropic.com](https://console.anthropic.com/). Your key is never logged or persisted by the server — it is used only for the duration of the request.
 
 ### `GET /health`
 
@@ -420,6 +472,10 @@ curl -X POST "http://localhost:8080/sync/trigger?incremental=true" \
 ## Deployment — Fly.io
 
 The project is configured to deploy on [Fly.io](https://fly.io) with a persistent volume for the DuckDB file.
+
+**Production API endpoints:**
+- `https://api.peeringdb.ai` — primary
+- `https://api.pdbq.ai` — alias
 
 ### First deploy
 
