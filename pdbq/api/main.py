@@ -100,24 +100,21 @@ app = FastAPI(
 )
 
 # CORS
-if settings.is_development:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-else:
-    origins = settings.allowed_origins_list
-    if origins:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://peeringdb.ai",
+        "https://www.peeringdb.ai",
+        "https://pdbq.ai",
+        "https://www.pdbq.ai",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8080",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Anthropic-Key"],
+)
 
 # Google OAuth routes
 import re
