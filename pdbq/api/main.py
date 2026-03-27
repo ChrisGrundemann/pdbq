@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI):
                 _run_scheduled_sync,
                 trigger="interval",
                 hours=settings.sync_schedule_interval_hours,
+                max_instances=1,
             )
             scheduler.start()
             logger.warning(

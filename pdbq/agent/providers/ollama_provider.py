@@ -6,6 +6,19 @@ import openai
 from pdbq.agent.providers.base import ModelProvider, ToolCall, ToolResult
 
 
+def _ollama_api_call(fn, base_url: str, model: str):
+    """Call fn(), translating connection/model errors into RuntimeError."""
+    try:
+        return fn()
+    except openai.NotFoundError:
+        raise RuntimeError(f"Ollama model '{model}' not found. Run: ollama pull {model}")
+    except (openai.APIConnectionError, ConnectionRefusedError) as exc:
+        raise RuntimeError(
+            f"Cannot connect to Ollama at {base_url}. "
+            f"Is it running? Try: systemctl start ollama  or  ollama serve"
+        ) from exc
+
+
 def _to_openai_tools(tools: list[dict]) -> list[dict]:
     """Convert Anthropic-format tool definitions to OpenAI function format."""
     return [
@@ -27,6 +40,7 @@ class OllamaProvider(ModelProvider):
             base_url=f"{base_url}/v1",
             api_key="ollama",
         )
+        self._base_url = base_url
         self._model = model
 
     def run(
@@ -38,10 +52,14 @@ class OllamaProvider(ModelProvider):
         openai_messages = [{"role": "system", "content": system}, *messages]
         openai_tools = _to_openai_tools(tools)
 
-        response = self._client.chat.completions.create(
-            model=self._model,
-            messages=openai_messages,
-            tools=openai_tools,
+        response = _ollama_api_call(
+            lambda: self._client.chat.completions.create(
+                model=self._model,
+                messages=openai_messages,
+                tools=openai_tools,
+            ),
+            self._base_url,
+            self._model,
         )
 
         message = response.choices[0].message

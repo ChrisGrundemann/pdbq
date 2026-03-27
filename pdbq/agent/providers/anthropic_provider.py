@@ -6,6 +6,8 @@ from pdbq.agent.providers.base import ModelProvider, ToolCall, ToolResult
 
 class AnthropicProvider(ModelProvider):
     def __init__(self, api_key: str, model: str) -> None:
+        if not api_key:
+            raise ValueError("ANTHROPIC_API_KEY is required when MODEL_PROVIDER=anthropic")
         self._client = anthropic.Anthropic(api_key=api_key)
         self._model = model
 
