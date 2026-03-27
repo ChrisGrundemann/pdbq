@@ -97,6 +97,7 @@ Key Insights:
  • Several smaller IXes (7 total) have no facility data registered in PeeringDB
 $
 ```
+
 ---
 
 ## Historical Queries
@@ -118,6 +119,8 @@ pdbq query "what was the quarterly growth rate of IX members at DE-CIX over the 
 PeeringDB*, not necessarily when entities were founded. Records 
 created before PeeringDB existed or added retroactively may 
 affect accuracy for early years.
+
+---
 
 ## Prerequisites
 
