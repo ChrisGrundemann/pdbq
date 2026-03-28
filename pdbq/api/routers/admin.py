@@ -16,7 +16,7 @@ _sync_thread: threading.Thread | None = None
 _last_sync_error: str | None = None
 
 
-@router.get("/sync/status", response_model=SyncStatusResponse, dependencies=[Depends(require_admin_key)])
+@router.get("/sync/status", response_model=SyncStatusResponse)
 async def sync_status() -> SyncStatusResponse:
     from pdbq.db.connection import get_read_connection
 

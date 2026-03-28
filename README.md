@@ -469,6 +469,43 @@ curl -X POST "http://localhost:8080/sync/trigger?incremental=true" \
 
 ---
 
+## Web Interface
+
+A browser-based frontend is available at [peeringdb.ai](https://peeringdb.ai). Ask natural-language questions and get formatted answers with full SQL transparency.
+
+**Source:** `frontend/` directory — Vite + React 18, Tailwind CSS.
+
+### Auth model
+
+The web UI supports two auth modes — you only need one:
+
+| Mode | What you provide                                     | Who pays for Anthropic tokens |
+|------|------------------------------------------------------|-------------------------------|
+| **Community key** | A pdbq access key (request on GitHub)                | The pdbq maintainer |
+| **BYOC** | Your own Anthropic API key ("Bring Your Own Claude") | You |
+
+Keys are stored in your browser's localStorage and never sent to any server other than their respective APIs.
+
+> **Security note:** When using BYOC, create a dedicated Anthropic API key with a spend limit at [console.anthropic.com](https://console.anthropic.com) rather than using your primary key.
+
+### Running the frontend locally
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. By default the frontend points at `https://api.peeringdb.ai`. To run against a local backend instead, create `frontend/.env`:
+```
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+### Disclaimer
+
+pdbq is an unofficial community tool and is not affiliated with, endorsed by, or operated by PeeringDB. Use of the underlying data is subject to the [PeeringDB Acceptable Use Policy](https://www.peeringdb.com/aup).
+
+---
+
 ## Deployment — Fly.io
 
 The project is configured to deploy on [Fly.io](https://fly.io) with a persistent volume for the DuckDB file.

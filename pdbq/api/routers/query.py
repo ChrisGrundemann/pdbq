@@ -30,7 +30,7 @@ def _stream_ndjson(
     system_prompt = build_system_prompt()
     messages: list[dict] = [{"role": "user", "content": query_text}]
     last_sql: Optional[str] = None
-    tool_call_count = 0
+    tool_calls_log: list[dict] = []
 
     _TOOL_STATUS = {
         "query_db": "Running SQL query...",
@@ -65,7 +65,6 @@ def _stream_ndjson(
 
             # Tool-use turn — process tools, don't emit buffered tokens
             messages.append({"role": "assistant", "content": final_msg.content})
-            tool_call_count += len(tool_use_blocks)
             tool_results = []
 
             for b in tool_use_blocks:
@@ -76,6 +75,7 @@ def _stream_ndjson(
                 if b.name == "export_to_sheets" and google_token and "user_token" not in tool_input:
                     tool_input = {**tool_input, "user_token": google_token}
                 result = dispatch_tool(b.name, tool_input, api_key=api_key)
+                tool_calls_log.append({"tool": b.name, "input": tool_input, "result": result})
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": b.id,
@@ -94,9 +94,9 @@ def _stream_ndjson(
         yield json.dumps({
             "type": "metadata",
             "sql_executed": last_sql,
-            "tool_calls": tool_call_count,
+            "tool_calls": tool_calls_log,
             "elapsed_ms": elapsed_ms,
-        }) + "\n"
+        }, default=str) + "\n"
 
     except Exception as exc:
         yield json.dumps({"type": "error", "message": str(exc)}) + "\n"

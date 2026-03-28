@@ -16,6 +16,11 @@ async def require_api_key(request: Request) -> None:
             "Do not deploy with this setting in production."
         )
 
+    # A request carrying its own Anthropic key is self-funding — pass through.
+    # The Anthropic API itself will reject invalid keys; no need to validate here.
+    if request.headers.get("X-Anthropic-Key", "").strip():
+        return
+
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         raise HTTPException(

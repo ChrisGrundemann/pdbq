@@ -136,9 +136,14 @@ class TestQueryEndpoint:
 
 
 class TestSyncStatus:
-    def test_sync_status_requires_admin_key(self, client):
-        response = client.get("/sync/status")
-        assert response.status_code == 401
+    def test_sync_status_is_public(self, client):
+        with patch("pdbq.db.connection.get_read_connection") as mock_get_conn:
+            mock_c = MagicMock()
+            mock_c.execute.return_value.fetchall.return_value = []
+            mock_c.close = MagicMock()
+            mock_get_conn.return_value = mock_c
+            response = client.get("/sync/status")
+        assert response.status_code == 200
 
     def test_sync_status_with_admin_key(self, client):
         from pdbq.config import settings
