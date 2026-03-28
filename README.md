@@ -600,4 +600,14 @@ This is an early-stage tool, feedback and PRs welcome!
 
 ## License
 
-Apache 2.0. See [LICENSE](LICENSE).
+Copyright (C) 2025 Chris Grundemann
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+You are free to use, modify, and self-host this software. If you modify this software and run it as a network service, you must make your modified source code available under the same license.
+
+For use cases that require a commercial license (e.g., proprietary modifications or private deployments without source disclosure), please contact Chris Grundemann to discuss commercial licensing options.
+
+See the [LICENSE](./LICENSE) file for the full license text, or visit
+[https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html).
+
