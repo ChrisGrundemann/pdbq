@@ -103,10 +103,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://peeringdb.ai",
+        "https://peeringdb.ai", # canonical (for fun)
         "https://www.peeringdb.ai",
-        "https://pdbq.ai",
-        "https://www.pdbq.ai",
+        "https://pdbq.ai", # canonical (long term)
+        "https://pdbq.io",
+        "https://pdbq.org",
+        "https://pdbq.app",
+        "https://pdbq.pages.dev", # Cloudflare Pages preview URL
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:8080",
