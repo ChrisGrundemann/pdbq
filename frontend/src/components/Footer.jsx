@@ -15,7 +15,7 @@ export default function Footer() {
       </span>
       <span style={{ color: 'var(--border)', fontSize: '0.72rem' }}>|</span>
       <a
-        href="#"
+        href="/terms.html"
         className="font-syne"
         style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textDecoration: 'none' }}
         onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-secondary)' }}
@@ -25,7 +25,7 @@ export default function Footer() {
       </a>
       <span style={{ color: 'var(--border)', fontSize: '0.72rem' }}>|</span>
       <a
-        href="#"
+        href="/privacy.html"
         className="font-syne"
         style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textDecoration: 'none' }}
         onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-secondary)' }}
