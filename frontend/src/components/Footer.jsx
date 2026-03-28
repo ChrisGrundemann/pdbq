@@ -50,14 +50,14 @@ export default function Footer() {
       </a>
       <p>
         pdbq is open source software licensed under{' '}
-          href="https://www.gnu.org/licenses/agpl-3.0.html"
+        <a href="https://www.gnu.org/licenses/agpl-3.0.html"
           target="_blank"
           rel="noopener noreferrer"
-        >
+          >
           AGPL v3
         </a>
         . Source code available at{' '}
-          href="https://github.com/ChrisGrundemann/pdbq"
+        < a href="https://github.com/ChrisGrundemann/pdbq"
           target="_blank"
           rel="noopener noreferrer"
         >
