@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terms of Service — pdbq</title>
+  <title>Privacy Policy — pdbq</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=Outfit:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -21,52 +21,71 @@
     h1 { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; }
     h2 { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700;
          margin: 2rem 0 0.5rem; color: var(--accent); }
-    p { margin-bottom: 1rem; }
+    p, ul { margin-bottom: 1rem; }
+    ul { padding-left: 1.5rem; }
+    li { margin-bottom: 0.25rem; }
     .meta { color: var(--muted); font-size: 0.875rem; margin-bottom: 2.5rem; }
     a { color: var(--accent); }
     hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
     .back { display: inline-block; margin-bottom: 2rem; color: var(--muted);
             text-decoration: none; font-size: 0.875rem; }
     .back:hover { color: var(--accent); }
+    .callout { background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+               padding: 1rem 1.25rem; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
 <div class="wrap">
   <a href="/" class="back">← Back to pdbq</a>
-  <h1>Terms of Service</h1>
+  <h1>Privacy Policy</h1>
   <p class="meta">Effective date: March 28, 2026 &nbsp;·&nbsp; Operated by Grundemann Technology Solutions (GTS)</p>
 
-  <h2>1. What pdbq is</h2>
-  <p>pdbq is an unofficial, community-operated tool that provides natural-language query access to a locally-mirrored copy of PeeringDB data. pdbq is not affiliated with, endorsed by, or operated by PeeringDB or the PeeringDB community.</p>
+  <div class="callout">
+    <strong>Short version:</strong> pdbq does not collect personal data, does not use cookies, and does not track you. Your API keys stay in your browser. Your query text is sent to the backend to generate an answer and is not stored.
+  </div>
 
-  <h2>2. Acceptance</h2>
-  <p>By using pdbq at peeringdb.ai or via the API at api.peeringdb.ai, you agree to these terms. If you do not agree, do not use the service.</p>
+  <h2>1. Who we are</h2>
+  <p>pdbq is operated by Grundemann Technology Solutions (GTS). This policy describes what data is collected when you use pdbq at peeringdb.ai or via the API at api.peeringdb.ai.</p>
 
-  <h2>3. PeeringDB data</h2>
-  <p>The data returned by pdbq is sourced from PeeringDB and is subject to the <a href="https://www.peeringdb.com/aup" target="_blank" rel="noopener">PeeringDB Acceptable Use Policy</a>. By using pdbq you agree to comply with that policy. In particular: do not use this data for bulk redistribution, commercial resale, or any purpose prohibited by the PeeringDB AUP.</p>
+  <h2>2. Data we collect</h2>
 
-  <h2>4. API keys and authentication</h2>
-  <p>Access to pdbq requires either a pdbq access key (issued by GTS) or your own Anthropic API key (BYOC). You are responsible for keeping your keys confidential. GTS may revoke access keys at any time for abuse or violation of these terms.</p>
+  <p><strong>Server access logs</strong> — Our hosting provider (Fly.io) automatically records standard HTTP access logs for every request. These include:</p>
+  <ul>
+    <li>Timestamp</li>
+    <li>HTTP method and path (e.g. <code>POST /query</code>)</li>
+    <li>Response status code</li>
+    <li>Source IP address</li>
+  </ul>
+  <p>These logs are retained by Fly.io per their standard log retention policy. We do not log query text, API keys, or any user-identifying information beyond what is present in standard access logs.</p>
 
-  <h2>5. BYOC — Bring Your Own Claude</h2>
-  <p>If you provide your own Anthropic API key, it is transmitted directly to Anthropic's API for the duration of your request. GTS does not store, log, or retain your Anthropic key. You are solely responsible for any charges incurred on your Anthropic account as a result of using pdbq.</p>
+  <p><strong>Query text</strong> — When you submit a query, the text of your question is sent to our backend and forwarded to Anthropic's API to generate an answer. Query text is not stored or logged by GTS. It is processed transiently and discarded after the response is returned.</p>
 
-  <h2>6. Acceptable use</h2>
-  <p>You agree not to: attempt to circumvent authentication; use pdbq to generate, store, or redistribute bulk PeeringDB data; send abusive, malicious, or automated query traffic; or use pdbq in any way that violates applicable law.</p>
+  <p><strong>API keys</strong> — Your pdbq access key and Anthropic API key (if provided) are stored only in your browser's localStorage. They are never stored on our servers. Your Anthropic key is transmitted directly to Anthropic's API and is not retained by GTS.</p>
 
-  <h2>7. Service availability</h2>
-  <p>pdbq is provided as-is, without any guarantee of uptime, accuracy, or availability. GTS may modify, suspend, or discontinue the service at any time without notice.</p>
+  <h2>3. Data we do not collect</h2>
+  <ul>
+    <li>No cookies of any kind</li>
+    <li>No analytics or tracking scripts</li>
+    <li>No account registration or personal profile data</li>
+    <li>No payment information</li>
+  </ul>
 
-  <h2>8. Data accuracy</h2>
-  <p>pdbq answers are generated by an AI model and may contain errors. All answers should be independently verified before use in operational decisions. GTS makes no warranties regarding the accuracy or completeness of any query result.</p>
+  <h2>4. Third-party services</h2>
+  <p><strong>Anthropic</strong> — Query text is sent to Anthropic's API to generate answers. Anthropic's own privacy policy governs how they handle this data. See <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener">anthropic.com/privacy</a>.</p>
+  <p><strong>Fly.io</strong> — pdbq is hosted on Fly.io. Fly.io may retain server access logs per their own data retention policies. See <a href="https://fly.io/legal/privacy-policy" target="_blank" rel="noopener">fly.io/legal/privacy-policy</a>.</p>
+  <p><strong>Google Fonts</strong> — The web interface loads fonts from Google Fonts. This may result in your IP address being sent to Google's servers. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>.</p>
+  <p><strong>PeeringDB</strong> — The data returned by pdbq originates from PeeringDB. pdbq is not affiliated with PeeringDB. PeeringDB's own privacy policy applies to their platform.</p>
 
-  <h2>9. Limitation of liability</h2>
-  <p>To the maximum extent permitted by applicable law, GTS shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of pdbq.</p>
+  <h2>5. Data retention</h2>
+  <p>GTS does not maintain any user database or persistent user records. Server access logs are retained per Fly.io's standard policies, which we do not control.</p>
 
-  <h2>10. Changes to these terms</h2>
-  <p>GTS may update these terms at any time. Continued use of pdbq after changes are posted constitutes acceptance of the revised terms.</p>
+  <h2>6. Your rights</h2>
+  <p>Since we do not collect or store personal data beyond standard server logs, there is no user data for GTS to provide, correct, or delete. If you have concerns about access log data, contact us and we will do our best to assist within what is technically possible.</p>
 
-  <h2>11. Contact</h2>
+  <h2>7. Changes to this policy</h2>
+  <p>We may update this policy as the service evolves. Material changes will be noted by updating the effective date above.</p>
+
+  <h2>8. Contact</h2>
   <p>Questions? Open an issue at <a href="https://github.com/ChrisGrundemann/pdbq" target="_blank" rel="noopener">github.com/ChrisGrundemann/pdbq</a>.</p>
 
   <hr />
