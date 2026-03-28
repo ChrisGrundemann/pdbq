@@ -199,9 +199,10 @@ def sync_resource(
         total += _upsert_records(conn, table, columns, batch)
         conn.commit()
 
-    _update_sync_meta(conn, endpoint, total, synced_at)
+    row_count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+    _update_sync_meta(conn, endpoint, row_count, synced_at)
     conn.commit()
-    logger.info("Synced %d records into %s", total, table)
+    logger.info("Synced %d records into %s (table total: %d)", total, table, row_count)
     return total
 
 
@@ -232,9 +233,10 @@ def sync_as_set(
         conn.commit()
 
     total = len(rows)
-    _update_sync_meta(conn, "as_set", total, synced_at)
+    row_count = conn.execute("SELECT COUNT(*) FROM as_set").fetchone()[0]
+    _update_sync_meta(conn, "as_set", row_count, synced_at)
     conn.commit()
-    logger.info("Synced %d records into as_set", total)
+    logger.info("Synced %d records into as_set (table total: %d)", total, row_count)
     return total
 
 
