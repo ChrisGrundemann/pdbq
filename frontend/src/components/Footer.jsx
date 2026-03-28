@@ -53,8 +53,8 @@ export default function Footer() {
         className="font-syne"
         style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}
       >
-        pdbq is open source software licensed under{' '}
-
+        {'pdbq is open source software licensed under '}
+        <a
           href="https://www.gnu.org/licenses/agpl-3.0.html"
           className="font-syne"
           style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textDecoration: 'none' }}
@@ -66,7 +66,7 @@ export default function Footer() {
           AGPL v3
         </a>
         {'. Source code available at '}
-
+        <a
           href="https://github.com/ChrisGrundemann/pdbq"
           className="font-syne"
           style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textDecoration: 'none' }}
