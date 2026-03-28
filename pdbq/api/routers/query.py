@@ -32,7 +32,14 @@ def _stream_ndjson(
     last_sql: Optional[str] = None
     tool_call_count = 0
 
+    _TOOL_STATUS = {
+        "query_db": "Running SQL query...",
+        "get_live_record": "Fetching live record from PeeringDB...",
+        "render_report": "Rendering report...",
+    }
+
     try:
+        yield json.dumps({"type": "status", "text": "Searching PeeringDB data..."}) + "\n"
         for _ in range(_MAX_ITERATIONS):
             buffered: list[str] = []
 
@@ -51,6 +58,7 @@ def _stream_ndjson(
 
             if not tool_use_blocks:
                 # Final response — yield buffered tokens
+                yield json.dumps({"type": "status", "text": "Generating answer..."}) + "\n"
                 for text in buffered:
                     yield json.dumps({"type": "token", "text": text}) + "\n"
                 break
@@ -61,6 +69,7 @@ def _stream_ndjson(
             tool_results = []
 
             for b in tool_use_blocks:
+                yield json.dumps({"type": "status", "text": _TOOL_STATUS.get(b.name, "Working...")}) + "\n"
                 tool_input = b.input
                 if b.name == "query_db":
                     last_sql = tool_input.get("sql")
