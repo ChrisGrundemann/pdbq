@@ -48,13 +48,13 @@ export default function Footer() {
       >
         Privacy Policy
       </a>
+      <span style={{ color: 'var(--border)', fontSize: '0.72rem' }}>|</span>
       <span
         className="font-syne"
         style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}
       >
         pdbq is open source software licensed under{' '}
-      </span>
-      <a
+
           href="https://www.gnu.org/licenses/agpl-3.0.html"
           className="font-syne"
           style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textDecoration: 'none' }}
@@ -62,16 +62,11 @@ export default function Footer() {
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
           target="_blank"
           rel="noopener noreferrer"
-      >
+        >
           AGPL v3
-      </a>
-      <span
-        className="font-syne"
-        style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}
-      >
-        . Source code available at{' '}
-      </span>
-      < a
+        </a>
+        {'. Source code available at '}
+
           href="https://github.com/ChrisGrundemann/pdbq"
           className="font-syne"
           style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textDecoration: 'none' }}
@@ -79,14 +74,10 @@ export default function Footer() {
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
           target="_blank"
           rel="noopener noreferrer"
-      >
+        >
           github.com/ChrisGrundemann/pdbq
-      </a>
-      <span
-        className="font-syne"
-        style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}
-      >
-        . Copyright &copy; 2025 Chris Grundemann.
+        </a>
+        {'. Copyright © 2025 Chris Grundemann.'}
       </span>
     </footer>
   )
