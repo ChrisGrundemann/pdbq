@@ -21,6 +21,8 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "tenacity>=8.0.0",
     "apscheduler>=3.10",
+    "slowapi>=0.1.9",
+    "sentry-sdk[fastapi]>=2.0.0",
 ]
 
 [dependency-groups]

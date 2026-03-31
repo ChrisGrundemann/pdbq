@@ -81,6 +81,15 @@ def run_agent(query: str, google_token: Optional[str] = None, api_key: Optional[
             logger.info("Tool call: %s(%s)", tc.name, json.dumps(tc.input)[:200])
             tool_calls_log.append({"tool": tc.name, "input": tc.input})
 
+            # Graceful early exit — agent has determined query is out of scope
+            if tc.name == "decline_query":
+                reason = tc.input.get("reason", "This question is outside pdbq's scope.")
+                return AgentResult(
+                    answer=reason,
+                    sql_executed=sql_executed,
+                    tool_calls=tool_calls_log,
+                )
+
             if tc.name == "query_db":
                 sql_executed.append(tc.input.get("sql", ""))
 
@@ -132,6 +141,9 @@ def stream_agent(query: str, google_token: Optional[str] = None, api_key: Option
         tool_results = []
         for tc in tool_calls:
             tool_input = tc.input
+            if tc.name == "decline_query":
+                yield tc.input.get("reason", "This question is outside pdbq's scope.")
+                return
             if tc.name == "export_to_sheets" and google_token and "user_token" not in tool_input:
                 tool_input = {**tool_input, "user_token": google_token}
             result = dispatch_tool(tc.name, tool_input, api_key=api_key)

@@ -20,10 +20,25 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from pdbq.api.auth import require_api_key
+from pdbq.api.rate_limit import limiter
 from pdbq.api.routers import admin, export, query
 from pdbq.config import settings
+
+import sentry_sdk
+from pdbq.config import settings as _settings_for_sentry
+
+if _settings_for_sentry.sentry_dsn:
+    sentry_sdk.init(
+        dsn=_settings_for_sentry.sentry_dsn,
+        environment=_settings_for_sentry.environment,  # 'production' or 'development'
+        traces_sample_rate=_settings_for_sentry.sentry_traces_sample_rate,
+        # Don't send PII — strip IP addresses and user agent from events
+        send_default_pii=False,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +128,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS
 app.add_middleware(

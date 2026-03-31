@@ -13,6 +13,16 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN ?? "",
+  environment: import.meta.env.MODE,           // 'production' or 'development'
+  tracesSampleRate: 0.1,
+  // Only initialise if DSN is configured — avoids console noise in local dev
+  enabled: Boolean(import.meta.env.VITE_SENTRY_DSN),
+});
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -20,6 +30,8 @@ import App from './App'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <Sentry.ErrorBoundary fallback={<p>Something went wrong. Please reload the page.</p>}>
+      <App />
+    </Sentry.ErrorBoundary>
   </StrictMode>
 )
