@@ -19,13 +19,15 @@ import time
 from typing import Any, Dict, Iterator, Optional
 
 import anthropic
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from pdbq.agent.core import run_agent
 from pdbq.agent.tools import TOOL_DEFINITIONS, dispatch_tool
 from pdbq.api.auth import require_api_key
+from pdbq.api.guardrails import QueryRejected, check_query
 from pdbq.api.models import QueryRequest, QueryResponse
+from pdbq.api.rate_limit import check_daily_budget, limiter
 from pdbq.config import settings
 
 router = APIRouter()
@@ -118,20 +120,29 @@ def _stream_ndjson(
 
 
 @router.post("/query", response_model=QueryResponse, dependencies=[Depends(require_api_key)])
+@limiter.limit(f"{settings.rate_limit_per_minute}/minute;{settings.rate_limit_per_hour}/hour")
 async def query(
-    request: QueryRequest,
+    request: Request,
+    body: QueryRequest,
     x_anthropic_key: Optional[str] = Header(default=None),
 ) -> QueryResponse:
+    check_daily_budget(request)
+
+    try:
+        check_query(body.query)
+    except QueryRejected as exc:
+        raise HTTPException(status_code=400, detail=exc.message)
+
     start = time.monotonic()
     resolved_key = x_anthropic_key or os.environ.get("ANTHROPIC_API_KEY")
 
-    if request.stream:
+    if body.stream:
         return StreamingResponse(
-            _stream_ndjson(request.query, request.google_token, resolved_key, start),
+            _stream_ndjson(body.query, body.google_token, resolved_key, start),
             media_type="text/plain",
         )
 
-    result = run_agent(request.query, google_token=request.google_token, api_key=resolved_key)
+    result = run_agent(body.query, google_token=body.google_token, api_key=resolved_key)
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
     return QueryResponse(

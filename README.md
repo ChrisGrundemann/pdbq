@@ -245,7 +245,12 @@ Copy `.env.example` to `.env` and set the values below. Variables marked **requi
 | `ENVIRONMENT` | No | `development` | Set to `production` to enforce API key auth and enable startup credential checks |
 | `SYNC_STALENESS_WARN_HOURS` | No | `24` | Hours since last sync before a warning is shown on query; 0 = always warn |
 | `SYNC_SCHEDULE_ENABLED` | No | `True` | Enable automatic incremental sync when running pdbq serve |
-| `SYNC_SCHEDULE_INTERVAL_HOURS` | No | `6` | How often the background scheduler runs incremental sync (hours)|
+| `SYNC_SCHEDULE_INTERVAL_HOURS` | No | `6` | How often the background scheduler runs incremental sync (hours) |
+| `SENTRY_DSN` | No | — | Sentry DSN for backend error monitoring; leave blank to disable |
+| `RATE_LIMIT_ENABLED` | No | `True` | Enable per-IP rate limiting on community key requests |
+| `RATE_LIMIT_PER_MINUTE` | No | `20` | Max requests per minute per IP (community key only) |
+| `RATE_LIMIT_PER_HOUR` | No | `100` | Max requests per hour per IP (community key only) |
+| `DAILY_REQUEST_BUDGET` | No | `500` | Max total community key requests per day; `0` = unlimited |
 
 **Production note:** When `ENVIRONMENT=production`, the app refuses to start if `ADMIN_API_KEY` or any entry in `PDBQ_API_KEYS` still contains the default `changeme-*` values.
 
@@ -406,6 +411,13 @@ Response (non-streaming):
 | `tool_calls` | object[] | Full tool invocation log |
 | `elapsed_ms` | int | Total time in milliseconds |
 
+Error responses:
+
+| Status | When | Body |
+|---|---|---|
+| `400` | Query rejected by pre-flight guardrail — off-topic or exceeds maximum length | `{"detail": "<reason>"}` |
+| `429` | Rate limit exceeded (community key only) — per-IP or daily quota reached | `{"detail": {"error": "...", "message": "..."}}` — message includes guidance to switch to BYOC |
+
 ### Streaming
 
 When `"stream": true` is set in the request body, the endpoint returns a `text/plain` response using newline-delimited JSON (NDJSON). Each line is a self-contained JSON object.
@@ -485,6 +497,8 @@ The web UI supports two auth modes — you only need one:
 | **BYOC** | Your own Anthropic API key ("Bring Your Own Claude") | You |
 
 Keys are stored in your browser's localStorage and never sent to any server other than their respective APIs.
+
+> **Rate limiting:** Community key requests are subject to per-IP rate limits and a daily request quota to control costs. BYOC callers are exempt from both — if you hit the community quota, switching to your own Anthropic key will bypass all limits.
 
 > **Security note:** When using BYOC, create a dedicated Anthropic API key with a spend limit at [console.anthropic.com](https://console.anthropic.com) rather than using your primary key.
 
@@ -610,4 +624,3 @@ For use cases that require a commercial license (e.g., proprietary modifications
 
 See the [LICENSE](./LICENSE) file for the full license text, or visit
 [https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html).
-

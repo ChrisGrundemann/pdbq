@@ -72,12 +72,22 @@ class Settings(BaseSettings):
     pdbq_api_keys: str = "changeme-key-1"
     admin_api_key: str = "changeme-admin-key"
 
+    # Rate limiting
+    rate_limit_enabled: bool = True
+    rate_limit_per_minute: int = 20          # max requests/min per IP (community key)
+    rate_limit_per_hour: int = 100           # max requests/hour per IP (community key)
+    daily_request_budget: int = 500          # max total community-key requests per day (0 = unlimited)
+
     # Google OAuth
     google_client_secrets_path: str = "secrets/google_client_secrets.json"
     google_token_store_path: str = "data/google_tokens/"
 
     # CORS
     allowed_origins: str = ""
+
+    # Sentry
+    sentry_dsn: str = ""            # leave empty to disable Sentry
+    sentry_traces_sample_rate: float = 0.1   # 10% of requests get performance tracing
 
     # Environment
     environment: str = "development"
