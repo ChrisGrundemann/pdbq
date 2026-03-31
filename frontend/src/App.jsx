@@ -25,6 +25,18 @@ import DetailPanel from './components/DetailPanel'
 import HistoryPanel from './components/HistoryPanel'
 import SettingsModal from './components/SettingsModal'
 
+// TEMPORARY: Sentry test — remove after confirming
+function ErrorButton() {
+  return (
+    <button
+      onClick={() => { throw new Error('Sentry frontend test'); }}
+      style={{ padding: '4px 8px', background: 'red', color: 'white', borderRadius: '4px' }}
+    >
+      Break the world
+    </button>
+  );
+}
+
 export default function App() {
   const {
     pdbqKey, setPdbqKey,
@@ -109,6 +121,7 @@ export default function App() {
         {/* Primary content column */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-5">
+            <ErrorButton />   {/* TEMPORARY: remove after Sentry test */}
             <QueryInput
               key={historyInputKey}
               initialValue={historyInitialValue}
