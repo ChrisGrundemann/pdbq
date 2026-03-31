@@ -29,7 +29,10 @@ import SettingsModal from './components/SettingsModal'
 function ErrorButton() {
   return (
     <button
-      onClick={() => { throw new Error('Sentry frontend test'); }}
+      onClick={() => {
+        Sentry.captureException(new Error('Sentry frontend test'));
+        console.log('Event sent to Sentry');
+      }}
       style={{ padding: '4px 8px', background: 'red', color: 'white', borderRadius: '4px' }}
     >
       Break the world
