@@ -99,6 +99,8 @@ export default function App() {
   }, [setPdbqKey, setAnthropicKey])
 
   const handleExampleSelect = useCallback((q) => {
+    setHistoryInitialValue(q)
+    setHistoryInputKey(k => k + 1)
     handleSubmit(q)
   }, [handleSubmit])
 
