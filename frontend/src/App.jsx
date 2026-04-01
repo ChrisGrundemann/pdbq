@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery } from './hooks/useQuery'
 import { useSettings } from './hooks/useSettings'
 import Header from './components/Header'
+import HeroPanel from './components/HeroPanel'
 import Footer from './components/Footer'
 import QueryInput from './components/QueryInput'
 import StatusIndicator from './components/StatusIndicator'
@@ -24,6 +25,7 @@ import AnswerPanel from './components/AnswerPanel'
 import DetailPanel from './components/DetailPanel'
 import HistoryPanel from './components/HistoryPanel'
 import SettingsModal from './components/SettingsModal'
+import ExamplePanel from './components/ExamplePanel'
 
 export default function App() {
   const {
@@ -34,6 +36,10 @@ export default function App() {
   } = useSettings()
 
   const { status, statusMessages, answer, metadata, error, submit, reset } = useQuery()
+
+  const heroRef                = useRef(null)
+  const pendingUrlQueryRef     = useRef('')
+  const lastSubmittedQueryRef  = useRef('')
 
   const [showSettings, setShowSettings]         = useState(false)
   const [history, setHistory]                   = useState([])
@@ -57,14 +63,26 @@ export default function App() {
         if (prev[0]?.query === q) return prev // skip exact duplicate at top
         return [{ id: Date.now(), query: q, timestamp: new Date() }, ...prev].slice(0, 50)
       })
+      heroRef.current?.collapse()
     }
     prevStatusRef.current = status
   }, [status])
 
+  const handleGetStarted = useCallback(() => {
+    setShowSettings(true)
+  }, [])
+
   const handleSubmit = useCallback((q) => {
+    if (!hasKeys) {
+      setShowSettings(true)
+      return
+    }
+    if (q === lastSubmittedQueryRef.current) return
+    lastSubmittedQueryRef.current = q
     submittedQueryRef.current = q
     submit(q, pdbqKey, anthropicKey)
-  }, [submit, pdbqKey, anthropicKey])
+    window.history.replaceState({}, '', `?q=${encodeURIComponent(q)}`)
+  }, [hasKeys, submit, pdbqKey, anthropicKey])
 
   // Populate the input and re-submit when a history entry is clicked
   const handleHistorySelect = useCallback((q) => {
@@ -79,6 +97,42 @@ export default function App() {
     setAnthropicKey(aKey)
     setShowSettings(false)
   }, [setPdbqKey, setAnthropicKey])
+
+  const handleExampleSelect = useCallback((q) => {
+    setHistoryInitialValue(q)
+    setHistoryInputKey(k => k + 1)
+    handleSubmit(q)
+  }, [handleSubmit])
+
+  const handleClear = useCallback(() => {
+    reset()
+    lastSubmittedQueryRef.current = ''
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [reset])
+
+  // URL param on mount — pre-fill and optionally submit a ?q= query
+  useEffect(() => {
+    const params    = new URLSearchParams(window.location.search)
+    const urlQuery  = params.get('q')?.trim() ?? ''
+    if (urlQuery) {
+      setHistoryInitialValue(urlQuery)
+      setHistoryInputKey(k => k + 1)
+      if (hasKeys) {
+        handleSubmit(urlQuery)
+      } else {
+        pendingUrlQueryRef.current = urlQuery
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deferred submission — fires after user saves keys when they arrived via ?q=
+  useEffect(() => {
+    if (hasKeys && pendingUrlQueryRef.current) {
+      const q = pendingUrlQueryRef.current
+      pendingUrlQueryRef.current = ''
+      handleSubmit(q)
+    }
+  }, [hasKeys]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isLoading = status === 'loading' || status === 'streaming'
   const hasResult = Boolean(answer || error)
@@ -106,15 +160,19 @@ export default function App() {
         className="flex-1 flex flex-col md:flex-row overflow-hidden"
         style={{ minHeight: 0 }}
       >
+        {hasKeys && <ExamplePanel onSelect={handleExampleSelect} />}
+
         {/* Primary content column */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-5">
+            <HeroPanel ref={heroRef} onGetStarted={handleGetStarted} />
+
             <QueryInput
               key={historyInputKey}
               initialValue={historyInitialValue}
               onSubmit={handleSubmit}
               isLoading={isLoading}
-              onClear={reset}
+              onClear={handleClear}
               hasResult={hasResult}
             />
 
@@ -133,19 +191,19 @@ export default function App() {
         </div>
 
         {/* Right sidebar — history */}
-        <HistoryPanel entries={history} onSelect={handleHistorySelect} />
+        {hasKeys && <HistoryPanel entries={history} onSelect={handleHistorySelect} />}
       </main>
 
       <Footer />
 
-      {/* Settings modal — required on first visit, optional thereafter */}
-      {(!hasKeys || showSettings) && (
+      {/* Settings modal — triggered explicitly by user action */}
+      {showSettings && (
         <SettingsModal
           pdbqKey={pdbqKey}
           anthropicKey={anthropicKey}
           onSave={handleSaveSettings}
           onClose={() => setShowSettings(false)}
-          isRequired={!hasKeys}
+          isRequired={false}
         />
       )}
     </div>

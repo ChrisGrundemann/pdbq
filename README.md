@@ -502,6 +502,31 @@ Keys are stored in your browser's localStorage and never sent to any server othe
 
 > **Security note:** When using BYOC, create a dedicated Anthropic API key with a spend limit at [console.anthropic.com](https://console.anthropic.com) rather than using your primary key.
 
+### Getting started
+
+The page loads fully before asking for a key — you can read the hero and example queries before configuring anything. When you're ready to query, either:
+
+- Click **"I have a key — get started →"** in the hero, or
+- Click **⚙** in the header, or
+- Type a query and hit Run — the key modal will open automatically if no key is configured.
+
+Once a key is saved it is stored in your browser's localStorage and never sent to any server other than its respective API.
+
+### Shareable query URLs
+
+Every query updates the page URL with a `?q=` parameter. To share a query, copy the URL from your browser's address bar. Anyone opening the link will have the query pre-populated and auto-submitted (they will need their own key to run it).
+```
+https://peeringdb.ai/?q=IXes+in+Africa+with+more+than+10+members
+```
+
+### Example query library
+
+The left sidebar contains 25 example queries across six categories — IXes, Networks, Facilities, Peering, Carriers, and Historical. Clicking any example pre-fills the query input and submits it. The sidebar is visible once a key is configured.
+
+### Acceptable Use Policy
+
+On first use, the key modal includes a checkbox acknowledging the [PeeringDB Acceptable Use Policy](https://www.peeringdb.com/aup). This is required once per browser and is persisted in localStorage.
+
 ### Running the frontend locally
 ```bash
 cd frontend
@@ -577,8 +602,7 @@ fly ssh console -C "uv run python sync/run.py"
 
 - The Fly volume is mounted at `/app/data`. The entrypoint script fixes ownership at startup so the non-root app user can write to it.
 - `secrets/` (Google OAuth client secrets) must be provisioned separately if Sheets export is needed. Copy the file into the running machine with `fly sftp`.
-- `min_machines_running = 0` means the machine stops when idle. The first request after a cold start will be slower while the machine wakes.
-
+- `min_machines_running = 1` keeps one machine always running to eliminate cold start latency on the first request, also allows incremental db sync to work.
 ---
 
 ## Data
