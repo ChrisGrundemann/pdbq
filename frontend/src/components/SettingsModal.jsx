@@ -21,8 +21,14 @@ export default function SettingsModal({ pdbqKey, anthropicKey, onSave, onClose, 
   const [showPdbq,       setShowPdbq]       = useState(false)
   const [showAnthropic,  setShowAnthropic]  = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [alreadyAcked] = useState(() => localStorage.getItem('pdbq_aup_ack') === '1')
+  const [aupChecked, setAupChecked] = useState(false)
 
   function validate() {
+    if (!alreadyAcked && !aupChecked) {
+      setSaveError('Please acknowledge the PeeringDB Acceptable Use Policy to continue.')
+      return false
+    }
     if (!localPdbq.trim() && !localAnthropic.trim()) {
       setSaveError('Please enter at least one key')
       return false
@@ -33,6 +39,9 @@ export default function SettingsModal({ pdbqKey, anthropicKey, onSave, onClose, 
 
   function handleSave() {
     if (!validate()) return
+    if (!alreadyAcked) {
+      localStorage.setItem('pdbq_aup_ack', '1')
+    }
     onSave(localPdbq.trim(), localAnthropic.trim())
   }
 
@@ -172,6 +181,26 @@ export default function SettingsModal({ pdbqKey, anthropicKey, onSave, onClose, 
               Your own Anthropic key — never stored on our servers.
             </span>
           </div>
+
+          {/* AUP acknowledgement — only shown until the user has acked once */}
+          {!alreadyAcked && (
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: 8 }}>
+              <input
+                type="checkbox"
+                id="aup-ack"
+                checked={aupChecked}
+                onChange={e => setAupChecked(e.target.checked)}
+                style={{ accentColor: 'var(--accent)', width: 16, height: 16, marginTop: 2, flexShrink: 0 }}
+              />
+              <label htmlFor="aup-ack" className="font-outfit text-xs" style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                I have read and agree to the{' '}
+                <a href="https://www.peeringdb.com/aup" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
+                  PeeringDB Acceptable Use Policy
+                </a>
+                . I understand this data is for operational network planning and peering purposes.
+              </label>
+            </div>
+          )}
 
           {/* Save error */}
           {saveError && (
