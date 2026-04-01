@@ -42,9 +42,6 @@ export default function App() {
   const lastSubmittedQueryRef  = useRef('')
 
   const [showSettings, setShowSettings]         = useState(false)
-  const [showExamples, setShowExamples]         = useState(
-    () => localStorage.getItem('pdbq_examples_seen') !== '1'
-  )
   const [history, setHistory]                   = useState([])
   const [historyInputKey, setHistoryInputKey]   = useState(0)
   const [historyInitialValue, setHistoryInitialValue] = useState('')
@@ -105,11 +102,6 @@ export default function App() {
     handleSubmit(q)
   }, [handleSubmit])
 
-  const handleExampleDismiss = useCallback(() => {
-    setShowExamples(false)
-    localStorage.setItem('pdbq_examples_seen', '1')
-  }, [])
-
   const handleClear = useCallback(() => {
     reset()
     lastSubmittedQueryRef.current = ''
@@ -166,6 +158,8 @@ export default function App() {
         className="flex-1 flex flex-col md:flex-row overflow-hidden"
         style={{ minHeight: 0 }}
       >
+        {hasKeys && <ExamplePanel onSelect={handleExampleSelect} />}
+
         {/* Primary content column */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-5">
@@ -179,13 +173,6 @@ export default function App() {
               onClear={handleClear}
               hasResult={hasResult}
             />
-
-            {hasKeys && showExamples && (
-              <ExamplePanel
-                onSelect={handleExampleSelect}
-                onDismiss={handleExampleDismiss}
-              />
-            )}
 
             <StatusIndicator
               messages={statusMessages}
