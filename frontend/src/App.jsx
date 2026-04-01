@@ -191,7 +191,7 @@ export default function App() {
         </div>
 
         {/* Right sidebar — history */}
-        <HistoryPanel entries={history} onSelect={handleHistorySelect} />
+        {hasKeys && <HistoryPanel entries={history} onSelect={handleHistorySelect} />}
       </main>
 
       <Footer />
